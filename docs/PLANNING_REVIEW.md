@@ -19,13 +19,14 @@ Date: 2026-10-11 · Branch: `docs/planning-foundation` · Status: **Awaiting own
 | Datasets | Frozen manifests + on-demand export packages; never in Git | ADR-013 |
 | AI | No ASR/MT in MVP; machine output never ground truth | ADR-014 |
 | Hosting | One VM + Docker Compose (institutional server preferred) | ADR-015 |
+| Recording modes | Free, prompted (image/situation), and read speech, with a versioned prompt library | ADR-018, RECORDING_MODES |
 | Pilot safety default | **No minors in the pilot** until guardian procedure is approved | CONSENT §3.4 |
 
 ## 2. Checks performed
 
 | # | Check | Result |
 |---|-------|--------|
-| 1 | All documents listed in the brief exist | ✅ all 27 documents named in the brief exist in `docs/` (incl. this review) |
+| 1 | All documents listed in the brief exist | ✅ all 27 documents named in the brief exist in `docs/` (incl. this review), plus RECORDING_MODES.md |
 | 2 | Architecture decisions match the selected stack | ✅ ADR-002–016 match TECH_STACK_EVALUATION §2, SYSTEM_ARCHITECTURE, CLAUDE.md |
 | 3 | Database model supports documented workflows | ✅ Mapping table in DATABASE_SCHEMA §9 covers flows F1–F7. Two gaps found and fixed during review: translation staleness needed `source_revision_id`; reviewer scope needed `user_roles.scope`; consent widening needed `applies_to_past_contributions`. |
 | 4 | Privacy and consent reflected in architecture | ✅ Separate identity table and evidence bucket; effective-access rule in one place; purpose-gated releases; export allow-list; withdrawal path across all lifecycle stages |

@@ -20,7 +20,7 @@ Principle: **collect the minimum.** Every optional personal or demographic field
 | Collection context | `submissions.collection_context` (JSONB, schema below) | Contributor/facilitator | Partly | Low–medium | Yes, allow-listed keys only |
 | Demographics (optional) | `speakers.age_band`, `gender_self_described`, `first_language`, `other_languages`, `region_coarse` | Speaker via facilitator | No | **Medium–high** | Only if consented and release purpose allows |
 | Consent status and permitted uses | `consent_records.status`, `allow_*`, `attribution_preference` | Facilitator/speaker | Yes | Medium | Yes as a **snapshot of permissions only** |
-| Source and collection method | `submissions.collection_method`, `recordings.recorded_device_hint` | Contributor/system | Yes | Low | Yes |
+| Source and collection method | `submissions.collection_method`, `recording_mode`, `prompt_id`, `recordings.recorded_device_hint` | Contributor/system | Yes | Low | Yes |
 | Processing history | `processing_runs` (job type, tool versions, timestamps, outcome) | System | Yes | Low | Summary in manifest |
 | Review status and timestamps | `submissions.status`, `review_events.*` | Reviewers/system | Yes | Low (notes are internal) | Status + dates only |
 | Dataset version | `dataset_releases.slug`, `version` | Admin | — | Low | Yes |
@@ -48,6 +48,9 @@ A controlled list is **pending linguist input (Q-X1)**. Until then: free text, p
 ### `content_type`
 `story`, `conversation`, `vocabulary`, `song`, `sentence_list`, `other`.
 
+### `recording_mode`
+`free` (spontaneous speech), `prompted` (image or situation prompt), `read` (reading a displayed sentence). See [RECORDING_MODES.md](RECORDING_MODES.md).
+
 ### `collection_method`
 `self_recorded`, `facilitator_field`, `facilitator_remote`, `imported_archive`.
 
@@ -61,7 +64,7 @@ A controlled list is **pending linguist input (Q-X1)**. Until then: free text, p
 | `minor` | Speaker under 18 | Excluded until guardian process confirmed (Q-L4). |
 
 ### `origin` (text revisions)
-`human_contributor`, `human_reviewer`, `machine`, `imported`.
+`human_contributor`, `human_reviewer`, `machine`, `imported`, `prompt_text` (reference sentence of a read-speech prompt).
 
 ### `verification_status`
 `unverified` (default), `verified` (a reviewer confirmed it matches the audio/source), `disputed` (reviewers disagree or uncertainty unresolved).
@@ -70,11 +73,9 @@ A controlled list is **pending linguist input (Q-X1)**. Until then: free text, p
 
 | Key | Type | Example | Exported |
 |-----|------|---------|----------|
-| `prompt_id` | string | `story-prompt-03` | Yes |
 | `setting` | enum: `indoor_quiet`, `indoor_noisy`, `outdoor`, `unknown` | `indoor_quiet` | Yes |
 | `speaker_count` | integer | `1` | Yes |
 | `equipment` | enum: `phone_builtin_mic`, `phone_external_mic`, `field_recorder`, `unknown` | | Yes |
-| `is_elicited` | boolean | `true` | Yes |
 | `notes` | string (≤ 500 chars) | | **No** (may contain personal details) |
 
 Unknown keys are rejected by API validation. Adding a key requires updating this table and the schema validator.

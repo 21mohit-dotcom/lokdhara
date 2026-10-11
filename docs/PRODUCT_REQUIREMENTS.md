@@ -85,6 +85,8 @@ Priority: **M** = must have for MVP, **S** = should have if time allows, **F** =
 |----|-------------|----------|
 | FR-S1 | A user chooses audio, text, or audio + text when starting a submission. | M |
 | FR-S2 | Audio can be recorded in the browser or uploaded from a file. | M |
+| FR-S2a | Every audio submission uses one of three recording modes: **free speech**, **prompted speech** (describe an image or respond to a situation), or **read speech** (read a displayed Mundari sentence). See [RECORDING_MODES.md](RECORDING_MODES.md). | M |
+| FR-S2b | Administrators and reviewers manage a versioned prompt library (images, situations, read sentences); only approved prompts are shown to contributors. | M |
 | FR-S3 | Text entries can be a word, phrase, sentence, paragraph, or longer story/conversation, with the script (Devanagari, Latin, Nag Mundari/Mundari Bani, other) recorded. | M |
 | FR-S4 | A transcription can be attached to a recording, and Hindi and/or English translations to a transcription or text entry. Each is optional at submission time. | M |
 | FR-S5 | Metadata: content type (story, conversation, vocabulary, song, other), dialect/region as reported, recording context, recording date, and optional consented speaker attributes. | M |

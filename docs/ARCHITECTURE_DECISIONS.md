@@ -23,6 +23,7 @@ All ADRs below are **Proposed** as of 2026-10-11.
 | 015 | Single-VM Docker Compose deployment | Proposed |
 | 016 | UUIDv7 internal IDs and pseudonymous public codes | Proposed |
 | 017 | Repository holds code and documentation only | Proposed |
+| 018 | Three recording modes (free, prompted, read) with a versioned prompt library | Proposed |
 
 ---
 
@@ -131,3 +132,10 @@ All ADRs below are **Proposed** as of 2026-10-11.
 
 - **Decision:** No audio, no collected text, no consent documents, no personal data, no exports, no secrets in Git — enforced by `.gitignore`, a CI forbidden-file check, and secret scanning. Test fixtures are synthetic and generated at test time where possible.
 - **Revisit:** never.
+
+## ADR-018 — Three recording modes with a prompt library
+
+- **Context:** The owner wants audio collected in the three standard modes used by speech corpora: free/spontaneous speech, prompted (image or situation) speech, and read speech. Each yields different data and suits different speakers.
+- **Decision:** `submissions.recording_mode` records the mode; a versioned `prompts` table holds images, situations, and read sentences; submissions reference the exact prompt version. Read mode stores the prompt sentence as a `prompt_text` transcription revision that stays unverified until a reviewer confirms the reading. Details in `docs/RECORDING_MODES.md`.
+- **Alternatives:** Free speech only (simplest, but unbalanced topics and slow transcription); storing prompt info in `collection_context` JSONB (weak integrity, hard to filter and export).
+- **Revisit when:** a mode proves unusable in the field, or new modes (e.g., conversation between two speakers) are needed.

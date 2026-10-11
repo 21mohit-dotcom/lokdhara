@@ -50,8 +50,8 @@ flowchart LR
 
 ## M3 — Contributor submission workflow (vertical slice)
 
-- **Deliverables:** speaker creation (self + facilitator); consent capture (in-app + oral recording evidence + paper reference) against a seeded **test** consent form; submission draft; in-browser recording + file selection; IndexedDB drafts with retry; upload into quarantine; "my submissions" page; Hindi/English UI.
-- **Dependencies:** M2; answers to Q-G2, Q-G4, Q-X1 (provisional answers acceptable for development), Q-P1 user sessions recommended.
+- **Deliverables:** speaker creation (self + facilitator); consent capture (in-app + oral recording evidence + paper reference) against a seeded **test** consent form; submission draft; recording-mode choice (free / prompted / read) with a seeded **test** prompt library and admin prompt management (see RECORDING_MODES.md); in-browser recording + file selection; IndexedDB drafts with retry; upload into quarantine; "my submissions" page; Hindi/English UI.
+- **Dependencies:** M2; answers to Q-G2, Q-G4, Q-G7, Q-X1, Q-X5, Q-X6 (provisional answers acceptable for development), Q-P1 user sessions recommended.
 - **Acceptance criteria:** on a throttled "Slow 3G" profile and a real Android phone, a user can record, lose connection, recover, and upload without losing audio; no submission leaves draft without consent; contributor bundle ≤ 250 KB compressed (or documented deviation).
 - **Tests:** upload security suite (part), consent gating, idempotency, Playwright happy path with fake media stream.
 - **Before moving on:** usability notes from at least 2 test users (team members acting as contributors is acceptable at this stage).
