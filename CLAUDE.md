@@ -28,6 +28,7 @@ docs/                 # all planning and design docs (source of truth)
 .claude/rules/        # path-scoped rules (load when matching files are touched)
 .claude/skills/       # procedures: audio, text, database, privacy, git
 backend/              # FastAPI app/ (main, config, db, errors, security, cli, worker,
+                      #   object_store/ (ObjectStore: local + S3),
                       #   modules/<domain>/{models,schemas,service,router}.py), migrations/, tests/
 frontend/             # Vite React app: src/{pages,components,i18n}
 infra/                # docker-compose.yml (Caddyfile in M8)

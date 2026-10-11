@@ -52,7 +52,7 @@ service-account*.json
 /consent/
 /consent-evidence/
 /private/
-/.local-storage/
+.local-storage/
 *.parquet
 *.jsonl
 !docs/**/*.jsonl
