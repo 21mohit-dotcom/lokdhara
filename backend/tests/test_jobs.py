@@ -3,17 +3,19 @@
 from datetime import timedelta
 
 import pytest
+from fastapi.testclient import TestClient
 from sqlalchemy import Engine, select, text, update
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import Session
 
+from app.modules.audit.models import AuditEvent
 from app.modules.processing import (
     handlers,  # noqa: F401 - registers system.ping
     queue,
 )
 from app.modules.processing.models import Job, ProcessingRun
 from app.modules.processing.queue import JobContext, JobError, JobResult, enqueue, process_one
-from tests.conftest import requires_postgres
+from tests.conftest import MakeUser, login, requires_postgres
 
 pytestmark = requires_postgres
 
@@ -212,3 +214,30 @@ def test_backoff_grows_and_is_capped() -> None:
 def test_unknown_job_types_are_rejected(db: Session) -> None:
     with pytest.raises(ValueError, match="unknown job type"):
         enqueue(db, "email.send")
+
+
+# ------------------------------------------------------------------ admin API
+
+
+def test_admin_lists_and_retries_failed_jobs(
+    client: TestClient, make_user: MakeUser, engine: Engine, db: Session
+) -> None:
+    job_id = enqueue(db, "cleanup.quarantine")  # no handler yet, so it fails
+    db.commit()
+    process_one(engine, "w1", LEASE)
+    headers = {"X-CSRF-Token": login(client, make_user("admin1", "admin"))}
+    listed = client.get("/api/v1/admin/jobs?status=failed").json()["items"]
+    assert [item["id"] for item in listed] == [str(job_id)]
+    assert listed[0]["last_error_code"] == "no_handler"
+    assert "payload" not in listed[0]
+    retried = client.post(f"/api/v1/admin/jobs/{job_id}/retry", headers=headers)
+    assert retried.status_code == 200
+    assert (retried.json()["status"], retried.json()["attempts"]) == ("queued", 0)
+    again = client.post(f"/api/v1/admin/jobs/{job_id}/retry", headers=headers)
+    assert again.json()["code"] == "job_not_failed"
+    assert db.scalar(select(AuditEvent.action).where(AuditEvent.action == "job.retry"))
+
+
+def test_only_admins_see_jobs(client: TestClient, make_user: MakeUser) -> None:
+    login(client, make_user("ravi", "reviewer"))
+    assert client.get("/api/v1/admin/jobs").status_code == 403
