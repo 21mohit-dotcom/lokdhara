@@ -4,6 +4,7 @@ This is the only module that reads configuration; other code receives a Settings
 """
 
 from functools import lru_cache
+from pathlib import Path
 from typing import Literal
 
 from pydantic import Field, SecretStr, model_validator
@@ -34,6 +35,21 @@ class Settings(BaseSettings):
     session_idle_hours_staff: float = Field(default=12, gt=0)
     session_absolute_days: float = Field(default=30, gt=0)
     password_reset_hours: int = Field(default=24, gt=0, le=24 * 7)
+
+    # Object storage (ADR-006). Bucket names map to app.object_store.Bucket.
+    storage_backend: Literal["local", "s3"] = "local"
+    local_storage_dir: Path = Path(".local-storage")
+    s3_endpoint_url: str | None = None
+    s3_region: str | None = None
+    s3_access_key_id: SecretStr | None = None
+    s3_secret_access_key: SecretStr | None = None
+    s3_force_path_style: bool = False
+    bucket_quarantine: str = "lokdhara-quarantine"
+    bucket_originals: str = "lokdhara-originals"
+    bucket_derived: str = "lokdhara-derived"
+    bucket_consent_evidence: str = "lokdhara-consent-evidence"
+    bucket_exports: str = "lokdhara-exports"
+    signed_url_ttl_seconds: int = Field(default=600, gt=0, le=600)
 
     # Login throttling
     login_max_failures: int = Field(default=5, gt=0)
