@@ -8,7 +8,7 @@ Lokdhara is a community-driven, research-oriented platform for preserving and di
 
 ## Current phase
 
-**Planning complete, awaiting approval.** Do not implement application features (frontend, backend, uploads, auth, migrations, infrastructure) until the project owner explicitly approves the plan and the relevant milestone in `docs/ROADMAP.md`. Documentation fixes are fine.
+**Plan approved (2026-10-11); Milestone 1 (application skeleton) in progress.** Implement only the current milestone in `docs/ROADMAP.md`; do not start later milestones (uploads, auth, migrations, production infrastructure) without the owner's go-ahead.
 
 ## Architecture (see `docs/SYSTEM_ARCHITECTURE.md`, `docs/ARCHITECTURE_DECISIONS.md`)
 
@@ -27,14 +27,27 @@ CLAUDE.md, README.md, .gitignore, .editorconfig, .env.example
 docs/                 # all planning and design docs (source of truth)
 .claude/rules/        # path-scoped rules (load when matching files are touched)
 .claude/skills/       # procedures: audio, text, database, privacy, git
-backend/              # (M1) app/, migrations/, tests/
-frontend/             # (M1) Vite React app
-infra/                # (M1) docker-compose.yml, Caddyfile
+backend/              # FastAPI app/ (main, config, db, health, worker), tests/; migrations/ in M2
+frontend/             # Vite React app: src/{pages,components,i18n}
+infra/                # docker-compose.yml (Caddyfile in M8)
+scripts/              # repository checks used by CI
+.github/workflows/    # CI
 ```
 
 ## Development commands
 
-Not yet available — added in Milestone 1. Planned: `uv run pytest`, `uv run ruff check`, `uv run mypy`, `npm run test`, `npm run lint`, `docker compose -f infra/docker-compose.yml up`.
+```bash
+docker compose -f infra/docker-compose.yml up -d db     # PostgreSQL 18 (local only)
+cd backend && uv sync                                   # Python 3.13 deps
+uv run uvicorn app.main:app --reload                    # API :8000 (docs /api/docs)
+uv run python -m app.worker                             # worker
+uv run ruff check . && uv run ruff format --check . && uv run mypy app tests && uv run pytest
+cd frontend && npm ci && npm run dev                    # SPA :5173 (proxies /api)
+npm run lint && npm run typecheck && npm test && npm run build && npm run size
+bash scripts/check-forbidden-files.sh                   # same check CI runs
+```
+
+Set `LKD_TEST_DATABASE_URL` to run the PostgreSQL integration tests locally (CI always runs them).
 
 ## Non-negotiable data rules
 
