@@ -60,7 +60,7 @@ backend/
       identity/  speakers/  consent/  submissions/
       processing/  review/  datasets/  audit/
         (each: models.py, schemas.py, service.py, router.py)
-    storage/             # ObjectStore + adapters
+    object_store/        # ObjectStore + adapters (not "storage/": CI blocks that name for data)
     audio/               # ffprobe/ffmpeg wrappers, pure functions
     text/                # normalisation, script detection, pure functions
   migrations/            # Alembic
@@ -82,7 +82,7 @@ infra/
 
 ### 4.2 Playback
 
-The API never streams audio through Python for normal playback. It checks permission, writes an audit event for restricted items, and returns a short-lived signed URL (S3) or a time-limited token URL served by Caddy (local adapter) for the **playback rendition**.
+The API never streams audio through Python for normal playback. It checks permission, writes an audit event for restricted items, and returns a short-lived signed URL for the **playback rendition**: an S3 presigned URL in staging and production, or, with the local development adapter, an HMAC-signed `/api/v1/local-storage/…` URL served by the API (that route is only mounted when `LKD_STORAGE_BACKEND=local` in development or test). Only `derived` and `exports` objects can ever be signed; originals, quarantine, and consent evidence cannot.
 
 ### 4.3 Text revision
 
