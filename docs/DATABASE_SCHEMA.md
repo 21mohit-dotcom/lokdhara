@@ -122,8 +122,10 @@ Partial unique index: one `active` record per speaker.
 | dialect_label 🔎 | text NULL | As reported for this submission. |
 | region_coarse 🔎 | text NULL | |
 | recorded_on | date NULL | |
+| recording_mode 🔎 | text CHECK IN ('free','prompted','read') NULL | NULL only for text-only submissions. |
+| prompt_id | uuid FK prompts NULL | Required when `recording_mode` is `prompted` or `read`. |
 | collection_method 🔎 | text CHECK IN ('self_recorded','facilitator_field','facilitator_remote','imported_archive') | |
-| collection_context 🗂 | jsonb DEFAULT '{}' | Prompt used, setting, number of speakers, equipment. |
+| collection_context 🗂 | jsonb DEFAULT '{}' | Setting, number of speakers, equipment. |
 | status 🔎 | text (see state machine) | |
 | restriction_flags 🔎 | text[] DEFAULT '{}' | `sensitive`, `third_party_voice`, `contains_pii`, `culturally_restricted`, `minor`. |
 | created_at, submitted_at, updated_at | timestamptz | |
@@ -184,7 +186,7 @@ CHECK constraints enforce the `recording_id`/`source_layer_id` rules per `layer_
 | normalization_policy_version | text NULL | |
 | detected_scripts | text[] | Scripts actually present. |
 | uncertainty_markup | boolean | True if transcriber conventions for uncertainty are used. |
-| origin 🔎 | text CHECK IN ('human_contributor','human_reviewer','machine','imported') | |
+| origin 🔎 | text CHECK IN ('human_contributor','human_reviewer','machine','imported','prompt_text') | `prompt_text` = reference text from a read-speech prompt; unverified until a reviewer confirms the reading matches. | |
 | author_user_id | uuid FK users NULL | NULL only for `machine`. |
 | tool_name, tool_version, model_id | text NULL | Required when `machine`. |
 | confidence | numeric NULL | Only when `machine` and meaningful. |
@@ -196,6 +198,24 @@ Search indexes: GIN `to_tsvector('simple', content_nfc)`, GIN `content_nfc gin_t
 
 ### `text_segments` (reserved, post-MVP)
 `id, revision_id FK, start_ms, end_ms, speaker_label, text_original, text_nfc` — for time alignment.
+
+### `prompts` 🧊 (one row per prompt version)
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | |
+| prompt_key 🔎 | text | Stable key across versions, e.g. `img-farming-012`. |
+| version | int | UNIQUE (prompt_key, version). |
+| prompt_type 🔎 | text CHECK IN ('image','situation','read_sentence') | |
+| text | text NULL | Instruction/situation text, or the sentence to read. |
+| text_language_tag | text NULL | `hi`, `unr`, … |
+| script_code | text NULL | Required for `read_sentence`. |
+| image_object_key | text NULL | Required for `image`; stored in `derived/prompts/`. |
+| prompt_audio_object_key | text NULL | Optional spoken version for non-literate speakers. |
+| source_and_licence | text NOT NULL | Who made it and under what licence. |
+| topic_tags 🔎 | text[] | Controlled list (Q-X5). |
+| status 🔎 | text CHECK IN ('draft','approved','retired') | Status is the only field changed after insert. |
+| approved_by | uuid FK users NULL | |
+| created_by, created_at | | |
 
 ### `related_items`
 `id, submission_a, submission_b, relation ('same_story_retake','possible_duplicate','continuation'), created_by, created_at`.
@@ -269,7 +289,7 @@ Indexed on (target_type, target_id), (actor_user_id, occurred_at), (action, occu
 
 | Workflow ([USER_FLOWS.md](USER_FLOWS.md)) | Tables |
 |------|--------|
-| F1 contribution | submissions, recordings, text_layers, text_revisions, processing_runs |
+| F1 contribution | submissions, prompts, recordings, text_layers, text_revisions, processing_runs |
 | F2 consent | consent_forms, consent_records, speaker_identities |
 | F3 withdrawal | withdrawal_requests, consent_records, submissions, dataset_release_items, audit_events |
 | F4 review | review_events, text_revisions, submissions.status/restriction_flags |

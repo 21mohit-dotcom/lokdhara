@@ -14,7 +14,7 @@ Status: **Draft for approval**
 | Languages of UI | Hindi and English; strings externalised for Mundari later | FR-A7, NFR-4 |
 | Speakers | Pseudonymous speaker profiles; optional restricted identity details | FR-C1–C2 |
 | Consent | Versioned forms, per-use permissions, three capture methods, guardian consent, withdrawal | FR-C3–C7 |
-| Submissions | Audio (record/upload), text entries, transcription, Hindi/English translation, metadata, on-device drafts | FR-S1–S7 |
+| Submissions | Audio in three recording modes (free, prompted, read) with a prompt library, text entries, transcription, Hindi/English translation, metadata, on-device drafts | FR-S1–S7, FR-S2a–b |
 | Processing | Signature + decode validation, technical metadata, playback and analysis renditions, quality signals, exact-duplicate detection, text Unicode normalisation | FR-P1–P8 |
 | Review | Queue, playback, revisions, approve/reject/request-changes/restrict | FR-R1–R5 |
 | Datasets | Search approved items, frozen releases, export package with manifest + data card | FR-D1–D5 |

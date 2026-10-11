@@ -45,6 +45,7 @@ These are assumptions the plan currently relies on. Each one can change the desi
 | Q-G3 | Which content categories are culturally restricted (e.g., ritual songs, sacred stories), and who can see them? | Community representatives | Blocks M6 | — |
 | Q-G4 | In field practice, is consent captured before or after recording? | Facilitators + ethics | Blocks M3 | — |
 | Q-G5 | How are export holders bound to withdrawal requests (data use agreement)? | Professor + institution | Blocks M7 | — |
+| Q-G7 | Who approves images and situation prompts as culturally appropriate? | Community representatives | Blocks M3 | — |
 | Q-G6 | How is benefit returned to the community (access to materials, educational outputs)? | Professor + community | Later | — |
 
 ### Linguistic
@@ -55,7 +56,8 @@ These are assumptions the plan currently relies on. Each one can change the desi
 | Q-X2 | Is there a preferred orthography or normalisation policy for derived (not original) text? | Linguist + community | Blocks M5 (normalised field stays empty until decided) | — |
 | Q-X3 | Which uncertainty and annotation conventions should transcribers use (e.g., unclear word, overlapping speech, code-switching to Hindi)? | Linguist | Blocks M5 | — |
 | Q-X4 | Which scripts must be supported for input at launch (Devanagari and Latin certain; Nag Mundari likely)? | Linguist + community | Blocks M3 | — |
-| Q-X5 | What content prompts (word lists, story prompts) should be offered to contributors? | Linguist | Later | — |
+| Q-X5 | Which topics and initial prompts (images, situations) should be offered? | Linguist + community | Blocks M3 | — |
+| Q-X6 | Where does the read-sentence bank come from (written by reviewers, existing texts), and under what licence? | Linguist + owner | Blocks M3 | — |
 
 ### Product and project
 

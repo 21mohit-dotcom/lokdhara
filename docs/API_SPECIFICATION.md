@@ -72,7 +72,7 @@ Consent create body (example):
 
 | Method | Path | Auth | Purpose |
 |--------|------|------|---------|
-| POST | `/submissions` | contributor | Create draft. Body: `client_submission_id, speaker_id, kind, content_type, language_tag, dialect_label?, region_coarse?, recorded_on?, collection_method, collection_context` |
+| POST | `/submissions` | contributor | Create draft. Body: `client_submission_id, speaker_id, kind, content_type, language_tag, dialect_label?, region_coarse?, recorded_on?, collection_method, recording_mode?, prompt_id?, collection_context` |
 | GET | `/submissions?mine=true&status=…` | contributor | My submissions |
 | GET | `/submissions/{id}` | per access rules | Detail incl. layers, current revisions, quality flags, status |
 | PATCH | `/submissions/{id}` | owner, draft/changes_requested only | Edit metadata |
@@ -80,6 +80,17 @@ Consent create body (example):
 | POST | `/submissions/{id}/text-layers` | owner / reviewer | Create layer + first revision: `{layer_type, recording_id?, source_layer_id?, entry_type?, language_tag, script_code, content}` |
 | POST | `/submissions/{id}/submit` | owner | Draft → processing; checks consent and required parts |
 | POST | `/submissions/{id}/withdraw` | owner/admin 🔒 | Withdraw a single submission |
+
+## 4a. Prompts
+
+| Method | Path | Auth | Purpose |
+|--------|------|------|---------|
+| GET | `/prompts/next?type=image|situation|read_sentence&script=Deva&exclude=…` | contributor | One approved prompt (random, balanced by topic), skipping ones already shown |
+| GET | `/prompts/{id}` | contributor | Prompt text, image/audio signed URLs |
+| GET | `/admin/prompts?status=` | reviewer/admin | Prompt library |
+| POST | `/admin/prompts` | reviewer/admin 🔒 | Create draft prompt (multipart for image/audio) |
+| POST | `/admin/prompts/{id}/approve` · `/retire` | admin 🔒 | Status change |
+| POST | `/admin/prompts/{id}/versions` | reviewer/admin 🔒 | Edit = new version |
 
 ## 5. Recordings and playback
 

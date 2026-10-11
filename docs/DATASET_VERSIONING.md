@@ -57,6 +57,8 @@ Originals are **not** included by default (privacy, size); a release may include
   "dialect_label": "reported label or null",
   "content_type": "story",
   "collection_method": "facilitator_field",
+  "recording_mode": "prompted",
+  "prompt": {"id": "…", "key": "img-farming-012", "version": 2, "type": "image"},
   "recorded_on": "2027-01-15",
   "audio": {"path": "audio/0192f1c4-….flac", "duration_ms": 61234, "sample_rate_hz": 16000, "is_lossy_source": true, "sha256": "…"},
   "transcription": {"revision_id": "…", "script": "Deva", "text": "…", "origin": "human_reviewer", "verification_status": "verified", "uncertainty_markup": false},

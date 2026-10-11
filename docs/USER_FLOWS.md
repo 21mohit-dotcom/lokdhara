@@ -14,9 +14,9 @@ flowchart TD
     E -->|No| F[Consent flow F2]
     F --> G
     E -->|Yes| G{Submit what?}
-    G -->|Audio| H[Record in browser or choose file]
+    G -->|Audio| H0[Choose recording mode:<br/>free / prompted / read<br/>see RECORDING_MODES.md] --> H[Record in browser or choose file]
     G -->|Text| I[Type text, choose script and entry type]
-    G -->|Both| H
+    G -->|Both| H0
     H --> J[Optional: add transcription]
     I --> K[Optional: add Hindi / English translation]
     J --> K
