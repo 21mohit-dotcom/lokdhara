@@ -244,10 +244,13 @@ Search indexes: GIN `to_tsvector('simple', content_nfc)`, GIN `content_nfc gin_t
 
 ## 5. Processing
 
-### `processing_runs` 🧊
-`id, job_type ('audio.validate','audio.analyze','audio.renditions','audio.dedupe','text.derive','dataset.export','cleanup.quarantine'), target_type, target_id, attempt, status ('running','succeeded','failed'), started_at, finished_at, worker_id, tool_versions jsonb 🗂, input_sha256, output_summary jsonb 🗂, error_code, error_detail (sanitised)`
+Implemented by migration `0003` (ADR-019).
 
-Queue tables are owned by the job library (Procrastinate) or a minimal `jobs` table (ADR-007).
+### `jobs` (mutable work queue)
+`id, job_type, payload jsonb (IDs only), target_type, target_id, status ('queued','running','succeeded','failed'), attempts, max_attempts, run_after, dedupe_key NULL, locked_by NULL, lock_expires_at NULL, last_error_code NULL, created_at, finished_at NULL` — partial unique index on `dedupe_key` while queued or running. Finished rows may be purged; history lives in `processing_runs`.
+
+### `processing_runs` 🧊 (one row per finished attempt)
+`id, job_id (no FK, so jobs can be purged), job_type ('system.ping','audio.validate','audio.analyze','audio.renditions','audio.dedupe','text.derive','dataset.export','cleanup.quarantine'), target_type, target_id, attempt, status ('succeeded','failed'), started_at, finished_at, worker_id, tool_versions jsonb 🗂, input_sha256, output_summary jsonb 🗂, error_code, error_detail (sanitised: for unexpected errors only the exception type is stored)`. A running attempt is visible in `jobs`, so this table never needs updating.
 
 ## 6. Datasets
 

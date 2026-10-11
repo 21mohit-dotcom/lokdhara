@@ -158,5 +158,5 @@ Backups: nightly encrypted `pg_dump` to a separate bucket, object versioning on 
 - Real-device recording formats and decode reliability (Q-T1).
 - Opus playback on iOS Safari (Q-T2).
 - Bundle size of the contributor flow against the 250 KB target (measured in M3).
-- Procrastinate's fit vs. a minimal in-house queue (spike in M2).
+- Procrastinate's fit vs. a minimal in-house queue (spike in M2). *Done: in-house chosen, see ADR-019.*
 - Any ASR/MT model quality on Mundari (out of MVP scope).
