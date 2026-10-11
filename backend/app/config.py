@@ -29,6 +29,8 @@ class Settings(BaseSettings):
     migration_database_url: str | None = None
     log_level: str = "INFO"
     worker_poll_seconds: float = Field(default=5.0, gt=0)
+    # A job not finished within its lease is assumed abandoned and handed to another worker.
+    worker_lease_seconds: float = Field(default=900, gt=0)
 
     # Sessions (docs/ACCESS_CONTROL.md §4)
     session_idle_hours_contributor: float = Field(default=168, gt=0)

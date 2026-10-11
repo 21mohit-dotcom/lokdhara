@@ -2,6 +2,7 @@
 
     uv run python -m app.cli create-admin --username asha --display-name "Asha"
     uv run python -m app.cli seed-dev          # synthetic users; development/test only
+    uv run python -m app.cli ping-worker       # enqueue a no-op job to check the worker
 
 Accounts are invite-only (ADR-008); create-admin exists to bootstrap the first administrator.
 """
@@ -20,6 +21,7 @@ from app.errors import ApiError
 from app.modules.audit import service as audit
 from app.modules.identity import service
 from app.modules.identity.models import ROLES, User, UserRole
+from app.modules.processing.queue import enqueue
 from app.security import new_token
 
 # Synthetic development accounts: one per role, plus a second admin (two-admin rule).
@@ -95,6 +97,14 @@ def seed_dev() -> int:
     return 0
 
 
+def ping_worker() -> int:
+    with Session(get_engine()) as db:
+        job_id = enqueue(db, "system.ping")
+        db.commit()
+    print(f"Queued system.ping job {job_id}; a running worker records it in processing_runs.")
+    return 0
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m app.cli")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -103,9 +113,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     admin.add_argument("--display-name", required=True)
     admin.add_argument("--password-stdin", action="store_true", help="read password from stdin")
     commands.add_parser("seed-dev", help=f"create synthetic users ({', '.join(ROLES)})")
+    commands.add_parser("ping-worker", help="enqueue a no-op job to check the worker")
     args = parser.parse_args(argv)
     if args.command == "create-admin":
         return create_admin(args.username, args.display_name, args.password_stdin)
+    if args.command == "ping-worker":
+        return ping_worker()
     return seed_dev()
 
 

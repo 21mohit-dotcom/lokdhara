@@ -15,7 +15,7 @@ Lokdhara is a community-driven, research-oriented platform for preserving and di
 - Modular monolith: FastAPI `api` process + `worker` process, one codebase.
 - Frontend: React + TypeScript + Vite SPA, react-i18next (`hi`, `en`).
 - Backend: Python 3.13, FastAPI, SQLAlchemy 2, Alembic, Pydantic v2, uv, ruff, mypy, pytest.
-- Database: PostgreSQL 18 (JSONB only for open-ended metadata). Job queue in PostgreSQL (ADR-007).
+- Database: PostgreSQL 18 (JSONB only for open-ended metadata). Job queue in PostgreSQL (ADR-007, in-house `jobs` table per ADR-019).
 - Files: S3-compatible object storage behind `ObjectStore`; local filesystem adapter in dev.
 - Audio tooling: FFmpeg/ffprobe; model-based tools are advisory only.
 - Deploy: Docker Compose on one VM + Caddy.
@@ -46,6 +46,7 @@ uv run python -m app.cli seed-dev                       # synthetic users (print
 uv run python -m app.cli create-admin --username …       # first real admin
 uv run uvicorn app.main:app --reload                    # API :8000 (docs /api/docs)
 uv run python -m app.worker                             # worker
+uv run python -m app.cli ping-worker                    # enqueue a no-op job to test it
 uv run ruff check . && uv run ruff format --check . && uv run mypy app tests && uv run pytest
 cd frontend && npm ci && npm run dev                    # SPA :5173 (proxies /api)
 npm run lint && npm run typecheck && npm test && npm run build && npm run size
