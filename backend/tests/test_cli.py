@@ -40,3 +40,14 @@ def test_seed_dev_creates_one_account_per_role_once(
     assert "already exist" in capsys.readouterr().out
     roles = set(db.scalars(select(UserRole.role)))
     assert roles == {"admin", "reviewer", "facilitator", "contributor", "researcher"}
+
+
+@requires_postgres
+def test_ping_worker_queues_a_job(
+    monkeypatch: pytest.MonkeyPatch, engine: Engine, db: Session
+) -> None:
+    from app.modules.processing.models import Job
+
+    monkeypatch.setattr(cli, "get_engine", lambda: engine)
+    assert cli.main(["ping-worker"]) == 0
+    assert db.scalar(select(Job.job_type)) == "system.ping"
