@@ -1,0 +1,117 @@
+# User Flows
+
+Status: **Draft** · Describes MVP flows at the level needed for API and UI design. Screen designs come in Milestone 3.
+
+## F1 — Contribution (main flow)
+
+```mermaid
+flowchart TD
+    A[Open Lokdhara, signed in] --> B{Whose voice or text?}
+    B -->|Mine| C[Use my speaker profile]
+    B -->|Someone else's<br/>facilitator only| D[Pick or create speaker profile<br/>pseudonymous code]
+    C --> E{Active consent<br/>on file?}
+    D --> E
+    E -->|No| F[Consent flow F2]
+    F --> G
+    E -->|Yes| G{Submit what?}
+    G -->|Audio| H[Record in browser or choose file]
+    G -->|Text| I[Type text, choose script and entry type]
+    G -->|Both| H
+    H --> J[Optional: add transcription]
+    I --> K[Optional: add Hindi / English translation]
+    J --> K
+    K --> L[Metadata: content type, dialect/region as reported, context, date]
+    L --> M[Review summary screen]
+    M --> N[Save draft on device]
+    N --> O[Upload]
+    O -->|Network error| P[Keep draft, retry later]
+    P --> O
+    O -->|Success| Q[Server validates: status = processing]
+    Q -->|Fails validation| R[Status = rejected_invalid<br/>contributor sees reason]
+    Q -->|Passes| S[Status = awaiting_review]
+```
+
+Notes:
+
+1. Steps 1–8 of the brief map to: open (A), choose type (G), content + metadata (H–L), consent (E/F), validation and storage (O–Q), review (F4), authorised access (F5), export (F6).
+2. Consent is checked *before* content entry so that a speaker who declines is not recorded first and asked later. A facilitator may still capture consent at the end of a session if that matches field practice; in that case the draft cannot be uploaded until consent is attached. Which order is used in the field is open question Q-G4.
+3. The draft is saved on the device before any upload starts (FR-S6).
+
+## F2 — Consent capture
+
+```mermaid
+flowchart TD
+    A[Show current consent form version<br/>in chosen language] --> B[Read aloud / play audio explanation<br/>facilitator]
+    B --> C[Ask each permission separately:<br/>store & review / research / public / AI training / name credit]
+    C --> D{Speaker under 18?}
+    D -->|Yes| E[Guardian details + guardian answers]
+    D -->|No| F
+    E --> F{Method}
+    F -->|In-app confirmation| G[Speaker or guardian confirms on screen]
+    F -->|Oral consent recording| H[Record consent statement<br/>stored in restricted bucket]
+    F -->|Paper form| I[Enter paper form reference ID<br/>paper kept offline by institution]
+    G --> J[Consent record created: active]
+    H --> J
+    I --> J
+```
+
+- Every permission defaults to **No** except "store and review", which is required to participate at all.
+- The consent record stores the form version, answers, method, who obtained it, and when.
+
+## F3 — Withdrawal or change of consent
+
+```mermaid
+flowchart TD
+    A[Request arrives:<br/>in app, via facilitator, phone, or in person] --> B[Admin logs withdrawal request]
+    B --> C[Verify requester is the speaker or authorised representative]
+    C --> D{Scope}
+    D -->|Narrow permissions| E[New consent record version<br/>old one superseded]
+    D -->|Withdraw fully| F[Mark speaker + submissions withdrawn]
+    E --> G[Recompute effective access for all items]
+    F --> G
+    G --> H[Exclude from future dataset releases]
+    H --> I[Annotate affected frozen releases<br/>notify export holders per policy]
+    F --> J[Schedule deletion of originals and derivatives<br/>per retention policy]
+    I --> K[Close request; confirm to requester]
+    J --> K
+```
+
+## F4 — Review
+
+```mermaid
+flowchart TD
+    A[Reviewer opens queue] --> B[Pick submission not created by self]
+    B --> C[Listen, read transcript and translation,<br/>see quality flags and consent permissions]
+    C --> D{Decision}
+    D -->|Approve| E[status = approved]
+    D -->|Correct text| F[Create new revision<br/>origin = human_reviewer] --> C
+    D -->|Request changes| G[status = changes_requested<br/>contributor notified in app]
+    D -->|Reject| H[status = rejected, reason code]
+    D -->|Sensitive| I[restriction flag set<br/>access narrowed to admins/designated reviewers]
+```
+
+## F5 — Researcher search
+
+1. Researcher signs in and opens *Browse approved data*.
+2. Filters: content type, dialect label, script, has transcript, has translation, duration range, quality flags, permitted use.
+3. Results show only items where the researcher's access scope **and** the item's effective consent allow viewing.
+4. Playing audio fetches a short-lived signed URL for the *playback* rendition; originals are not available to researchers in the MVP.
+
+## F6 — Dataset release and export
+
+```mermaid
+flowchart LR
+    A[Create draft release:<br/>name, purpose, filter] --> B[Preview items + counts<br/>consent-filtered]
+    B --> C[Write data card]
+    C --> D[Admin approves + freezes]
+    D --> E[Manifest stored with checksums]
+    E --> F[Request export package]
+    F --> G[Worker builds ZIP:<br/>audio, text, manifest, data card]
+    G --> H[Time-limited download, audit-logged]
+```
+
+## F7 — Administrator: failed processing
+
+1. Admin opens *Processing jobs*, filters `failed`/`dead`.
+2. Sees error, attempts, tool versions, linked submission (no audio auto-played).
+3. Fixes cause (e.g., deploys a fix) and re-queues; or marks the submission `rejected_invalid` with a reason visible to the contributor.

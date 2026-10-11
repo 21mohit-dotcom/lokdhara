@@ -1,0 +1,108 @@
+# =====================================================================
+# Lokdhara .gitignore
+# This repository holds CODE AND DOCUMENTATION ONLY (ADR-017).
+# Never commit community audio, collected text, consent documents,
+# personal data, datasets/exports, database dumps, or secrets.
+# CI also fails on forbidden files; this list is the first line of defence.
+# =====================================================================
+
+# ---- Secrets and environment ----------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.age
+*.gpg
+id_rsa*
+id_ed25519*
+secrets/
+credentials*.json
+service-account*.json
+
+# ---- Audio (never commit recordings; test fixtures are generated) ----
+*.wav
+*.wave
+*.flac
+*.mp3
+*.ogg
+*.oga
+*.opus
+*.m4a
+*.aac
+*.webm
+*.amr
+*.3gp
+*.3gpp
+*.aif
+*.aiff
+*.wma
+*.caf
+*.mka
+
+# ---- Collected data, storage, datasets, exports ----------------------
+/data/
+/datasets/
+/exports/
+/storage/
+/uploads/
+/recordings/
+/consent/
+/consent-evidence/
+/private/
+/.local-storage/
+*.parquet
+*.jsonl
+!docs/**/*.jsonl
+
+# ---- Database files and dumps ----------------------------------------
+*.sqlite
+*.sqlite3
+*.db
+*.dump
+*.backup
+*.sql.gz
+*.pgdump
+pgdata/
+
+# ---- Python ----------------------------------------------------------
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+.hypothesis/
+*.egg-info/
+dist/
+build/
+
+# ---- Node / frontend -------------------------------------------------
+node_modules/
+frontend/dist/
+.vite/
+*.tsbuildinfo
+playwright-report/
+test-results/
+
+# ---- Editors and OS --------------------------------------------------
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+
+# ---- Claude Code personal files (team files in .claude/ ARE committed)
+CLAUDE.local.md
+.claude/settings.local.json
+
+# ---- Logs ------------------------------------------------------------
+*.log
+logs/
