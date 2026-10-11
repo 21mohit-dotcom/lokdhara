@@ -2,28 +2,28 @@
 
 Each ADR records a decision, the alternatives, and **the conditions under which we would revisit it**. Status values: *Proposed* (awaiting the project owner's approval), *Accepted*, *Superseded by ADR-NNN*. Never edit an accepted ADR's decision in place; add a new ADR that supersedes it.
 
-All ADRs below are **Proposed** as of 2026-10-11.
+All ADRs below were **Accepted** by the project owner on 2026-10-11.
 
 | # | Title | Status |
 |---|-------|--------|
-| 001 | Record decisions as ADRs in this file | Proposed |
-| 002 | Modular monolith: one API process + one worker process | Proposed |
-| 003 | React + TypeScript + Vite single-page app | Proposed |
-| 004 | Python 3.13 + FastAPI backend | Proposed |
-| 005 | PostgreSQL 18 as the single system of record | Proposed |
-| 006 | S3-compatible object storage behind an interface | Proposed |
-| 007 | PostgreSQL-backed job queue, no message broker | Proposed |
-| 008 | Invite-only accounts with server-side sessions | Proposed |
-| 009 | Originals are immutable; all processing creates derived artefacts | Proposed |
-| 010 | Text stored verbatim; normalisation only in derived fields | Proposed |
-| 011 | Text layers are append-only revisions with provenance | Proposed |
-| 012 | Consent as versioned records with per-use permissions; effective access is the most restrictive rule | Proposed |
-| 013 | Dataset releases are immutable manifests; export packages are generated, never committed | Proposed |
-| 014 | No ASR/MT in the MVP; future model output is always a suggestion | Proposed |
-| 015 | Single-VM Docker Compose deployment | Proposed |
-| 016 | UUIDv7 internal IDs and pseudonymous public codes | Proposed |
-| 017 | Repository holds code and documentation only | Proposed |
-| 018 | Three recording modes (free, prompted, read) with a versioned prompt library | Proposed |
+| 001 | Record decisions as ADRs in this file | Accepted |
+| 002 | Modular monolith: one API process + one worker process | Accepted |
+| 003 | React + TypeScript + Vite single-page app | Accepted |
+| 004 | Python 3.13 + FastAPI backend | Accepted |
+| 005 | PostgreSQL 18 as the single system of record | Accepted |
+| 006 | S3-compatible object storage behind an interface | Accepted |
+| 007 | PostgreSQL-backed job queue, no message broker | Accepted |
+| 008 | Invite-only accounts with server-side sessions | Accepted |
+| 009 | Originals are immutable; all processing creates derived artefacts | Accepted |
+| 010 | Text stored verbatim; normalisation only in derived fields | Accepted |
+| 011 | Text layers are append-only revisions with provenance | Accepted |
+| 012 | Consent as versioned records with per-use permissions; effective access is the most restrictive rule | Accepted |
+| 013 | Dataset releases are immutable manifests; export packages are generated, never committed | Accepted |
+| 014 | No ASR/MT in the MVP; future model output is always a suggestion | Accepted |
+| 015 | Single-VM Docker Compose deployment | Accepted |
+| 016 | UUIDv7 internal IDs and pseudonymous public codes | Accepted |
+| 017 | Repository holds code and documentation only | Accepted |
+| 018 | Three recording modes (free, prompted, read) with a versioned prompt library | Accepted |
 
 ---
 

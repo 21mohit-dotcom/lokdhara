@@ -1,6 +1,6 @@
 # Planning Review — Milestone 0
 
-Date: 2026-10-11 · Branch: `docs/planning-foundation` · Status: **Awaiting owner approval. Implementation has not started.**
+Date: 2026-10-11 · Branch: `docs/planning-foundation` · Status: **Approved by the project owner on 2026-10-11.**
 
 ## 1. Decisions proposed (all need approval)
 
