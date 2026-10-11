@@ -1,0 +1,19 @@
+{
+  "app": {
+    "name": "Lokdhara",
+    "tagline": "Preserving the Mundari language together"
+  },
+  "nav": {
+    "home": "Home",
+    "language": "Language"
+  },
+  "home": {
+    "newRecording": "New recording",
+    "mySubmissions": "My submissions",
+    "comingSoon": "This part of Lokdhara is being built."
+  },
+  "notFound": {
+    "title": "Page not found",
+    "backHome": "Go to home"
+  }
+}
