@@ -66,7 +66,7 @@ These are assumptions the plan currently relies on. Each one can change the desi
 | Q-P1 | Can we run 3–5 short sessions with real contributors/facilitators to validate personas and flows before M3 UI work? | Ayush + professor | Blocks M3 | — |
 | Q-P2 | What pilot success targets (speakers, hours, reviewed items) does the supervisor want? | Professor | Blocks M8 | — |
 | Q-P3 | Who are the initial reviewers and administrators? | Ayush + professor | Blocks M6 | — |
-| Q-P4 | The GitHub repository `AyushSoni3398/lokdhara` is currently **public** and owned by AyushSoni3398. The brief requires a private repository unless the owner approves otherwise. Should it be made private, and who is the owner of record? | Ayush Soni (AyushSoni3398, owner) | **Blocks pushing planning docs** | — |
+| Q-P4 | The GitHub repository `AyushSoni3398/lokdhara` is currently **public** and owned by AyushSoni3398. The brief requires a private repository unless the owner approves otherwise. Should it be made private, and who is the owner of record? | Ayush Soni (AyushSoni3398, owner) | **Blocks pushing planning docs** | Answered 2026-10-11: keep the repository **public** (code and docs only; data never committed). |
 | Q-P5 | Budget available for hosting (₹/month), and whether institutional servers are available. | Professor / institution | Blocks M8 | — |
 
 ### Technical (to be validated by spikes, not decided by debate)
@@ -84,4 +84,5 @@ These are assumptions the plan currently relies on. Each one can change the desi
 
 | Date | ID | Decision | Decided by |
 |------|----|----------|-----------|
-| — | — | — | — |
+| 2026-10-11 | Plan | Planning phase (M0) approved; ADR-001–018 accepted | Ayush Soni (owner) |
+| 2026-10-11 | Q-P4 | Repository stays public | Ayush Soni (owner) |

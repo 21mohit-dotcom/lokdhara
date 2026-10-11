@@ -7,7 +7,7 @@ The first version focuses **only on the Mundari language** (Jharkhand, India): c
 
 ## Project status
 
-**Planning phase.** Architecture, data design, governance, and the roadmap are documented and awaiting approval. No application code exists yet, and **no community data is stored in this repository — ever** (audio, collected text, consent records, and datasets live only in access-controlled storage).
+**Milestone 1 (application skeleton).** The plan was approved on 2026-10-11. The app does not collect anything yet, and **no community data is stored in this repository — ever** (audio, collected text, consent records, and datasets live only in access-controlled storage).
 
 ## Where to start reading
 
@@ -20,7 +20,7 @@ The first version focuses **only on the Mundari language** (Jharkhand, India): c
 | Understand consent and privacy | [Consent and governance](docs/CONSENT_AND_DATA_GOVERNANCE.md), [Privacy and security](docs/PRIVACY_AND_SECURITY.md), [Access control](docs/ACCESS_CONTROL.md) |
 | Know what happens next | [Roadmap](docs/ROADMAP.md), [Planning review](docs/PLANNING_REVIEW.md), [Open questions](docs/ASSUMPTIONS_AND_OPEN_QUESTIONS.md) |
 
-## Proposed stack (pending approval)
+## Stack
 
 React + TypeScript + Vite (frontend) · Python + FastAPI (backend and audio worker) · PostgreSQL · S3-compatible object storage · FFmpeg · Docker Compose.
 
@@ -30,7 +30,18 @@ React + TypeScript + Vite (frontend) · Python + FastAPI (backend and audio work
 - Conventional Commits, small focused changes, feature branches.
 - Never commit recordings, personal data, consent documents, datasets, `.env` files, or credentials.
 
-Development setup instructions will be added in Milestone 1.
+## Development setup
+
+You need Git, Docker, Python 3.13 with [uv](https://docs.astral.sh/uv/), and Node.js 24.
+
+```bash
+cp .env.example .env                                   # local values only; never commit .env
+docker compose -f infra/docker-compose.yml up -d db    # PostgreSQL 18
+cd backend && uv sync && uv run uvicorn app.main:app --reload   # http://localhost:8000/healthz
+cd frontend && npm ci && npm run dev                    # http://localhost:5173
+```
+
+Details: [backend/README.md](backend/README.md), [frontend/README.md](frontend/README.md). CI runs lint, type checks, tests, a bundle-size budget, a forbidden-file check, and a secret scan on every pull request.
 
 ## Licence
 

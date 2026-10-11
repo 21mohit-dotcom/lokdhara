@@ -1,0 +1,24 @@
+# Local development services. Synthetic data only — never load real recordings here.
+# Usage (from the repository root):
+#   docker compose -f infra/docker-compose.yml up -d db
+name: lokdhara
+
+services:
+  db:
+    image: postgres:18
+    environment:
+      POSTGRES_USER: lokdhara
+      POSTGRES_PASSWORD: lokdhara   # local-only credential; never reuse elsewhere
+      POSTGRES_DB: lokdhara
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lokdhara -d lokdhara"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata:
