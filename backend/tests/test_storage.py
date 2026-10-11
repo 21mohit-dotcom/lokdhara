@@ -11,8 +11,11 @@ from urllib.parse import parse_qs, urlsplit
 
 import boto3
 import pytest
+from fastapi.testclient import TestClient
 from moto import mock_aws
 
+from app.config import Settings, get_settings
+from app.main import create_app
 from app.object_store import (
     Bucket,
     IntegrityError,
@@ -22,6 +25,7 @@ from app.object_store import (
     ObjectStore,
     ObjectTooLarge,
     S3ObjectStore,
+    get_object_store,
     new_key,
 )
 
@@ -133,3 +137,45 @@ def test_new_key_contains_only_safe_parts() -> None:
     assert new_key("recordings", rid, suffix=".webm") == f"recordings/{rid}.webm"
     with pytest.raises(ValueError):
         new_key("Asha's story")
+
+
+# ------------------------------------------------- local signed download route
+
+
+@pytest.fixture
+def local_client(tmp_path: Path) -> Iterator[tuple[LocalObjectStore, TestClient]]:
+    settings = Settings(_env_file=None, env="test", secret_key=SECRET, local_storage_dir=tmp_path)
+    store = LocalObjectStore(tmp_path, NAMES, "http://testserver", SECRET)
+    app = create_app()
+    app.dependency_overrides[get_settings] = lambda: settings
+    app.dependency_overrides[get_object_store] = lambda: store
+    with TestClient(app) as client:
+        yield store, client
+
+
+def test_local_signed_url_downloads_once_valid(
+    local_client: tuple[LocalObjectStore, TestClient],
+) -> None:
+    store, client = local_client
+    store.put(Bucket.DERIVED, "play/1.ogg", io.BytesIO(b"opus bytes"))
+    url = store.signed_url(Bucket.DERIVED, "play/1.ogg", ttl_seconds=60, content_type="audio/ogg")
+    response = client.get(url)
+    assert response.status_code == 200
+    assert response.content == b"opus bytes"
+    assert response.headers["content-type"].startswith("audio/ogg")
+
+
+def test_local_signed_url_rejects_tampering_and_expiry(
+    local_client: tuple[LocalObjectStore, TestClient],
+) -> None:
+    store, client = local_client
+    store.put(Bucket.DERIVED, "play/1.ogg", io.BytesIO(b"opus bytes"))
+    store.put(Bucket.ORIGINALS, "play/1.ogg", io.BytesIO(b"original"))
+    url = store.signed_url(Bucket.DERIVED, "play/1.ogg", ttl_seconds=60, content_type="audio/ogg")
+    tampered = url.replace("sig=", "sig=0")
+    other_bucket = url.replace("/derived/", "/originals/")
+    expired = url.replace("expires=", "expires=1")  # a timestamp far in the past
+    for bad in (tampered, other_bucket, expired):
+        response = client.get(bad)
+        assert response.status_code == 403
+        assert response.json()["code"] == "signed_url_invalid"
