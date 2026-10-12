@@ -55,7 +55,7 @@ These are assumptions the plan currently relies on. Each one can change the desi
 |----|----------|-------------|--------|--------|
 | Q-X1 | Which dialect/variety labels should be offered as a controlled list (with free text always allowed)? | Linguist / professor | Blocks M3 | — |
 | Q-X2 | Is there a preferred orthography or normalisation policy for derived (not original) text? | Linguist + community | Blocks M5 (normalised field stays empty until decided) | — |
-| Q-X3 | Which uncertainty and annotation conventions should transcribers use (e.g., unclear word, overlapping speech, code-switching to Hindi)? | Linguist | Blocks M5 | — |
+| Q-X3 | Which uncertainty and annotation conventions should transcribers use (e.g., unclear word, overlapping speech, code-switching to Hindi)? | Linguist | Blocks M5 | *Provisional for development (2026-10-12):* the markup in [TEXT_PROCESSING_PIPELINE.md](TEXT_PROCESSING_PIPELINE.md) §8; only `[?…]` and `[inaudible]` set the uncertainty flag. |
 | Q-X4 | Which scripts must be supported for input at launch (Devanagari and Latin certain; Nag Mundari likely)? | Linguist + community | Blocks M3 | — |
 | Q-X5 | Which topics and initial prompts (images, situations) should be offered? | Linguist + community | Blocks M3 | *Provisional for development (2026-10-12):* `seed-dev` adds three team-written Hindi situation prompts with free-form topic tags; no images yet. |
 | Q-X6 | Where does the read-sentence bank come from (written by reviewers, existing texts), and under what licence? | Linguist + owner | Blocks M3 | *Provisional for development (2026-10-12):* one Hindi placeholder sentence, clearly marked, so read mode can be tested; no Mundari sentences until this is answered. |
