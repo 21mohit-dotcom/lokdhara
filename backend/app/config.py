@@ -59,6 +59,8 @@ class Settings(BaseSettings):
     # In development and test a key is derived from LKD_SECRET_KEY when this is empty.
     identity_encryption_key: SecretStr | None = None
 
+    # Consent capture (docs/CONSENT_AND_DATA_GOVERNANCE.md §3)
+    consent_evidence_max_bytes: int = Field(default=25 * 1024 * 1024, gt=0)
     # No minors in the pilot until Q-L4 is answered; the schema already supports guardians.
     allow_minors: bool = False
 
