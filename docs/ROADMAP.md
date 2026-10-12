@@ -1,6 +1,6 @@
 # Implementation Roadmap
 
-Status: **Approved by Ayush Soni (project owner) on 2026-10-11.** M0, M1, and M2 complete (M2 on 2026-10-12); M3 in progress. The **Blocks pilot** questions must still be answered before any real data is collected.
+Status: **Approved by Ayush Soni (project owner) on 2026-10-11.** M0, M1, and M2 complete (M2 on 2026-10-12); M3's code is in, with its device and user checks still open; M4 in progress. The **Blocks pilot** questions must still be answered before any real data is collected.
 
 ## Approach
 
@@ -64,7 +64,7 @@ flowchart LR
 - **How it runs:** against the local Docker Compose stack with synthetic data only, never against staging or production with real data.
 - **Acceptance criteria:** the script runs from a fresh clone with one command; results and the machine they ran on are recorded; any bottleneck found becomes an issue or an ADR before M8.
 
-## M4 — Audio and text validation pipeline
+## M4 — Audio and text validation pipeline *(in progress since 2026-10-12: part 1, validation and promotion to originals, done)*
 
 - **Deliverables:** worker jobs `audio.validate`, `audio.analyze`, `audio.renditions`, `audio.dedupe`, `text.derive`, `cleanup.quarantine`; promotion to originals; quality flags; text safety validation, NFC, script detection; admin failed-jobs page with retry.
 - **Dependencies:** M3.

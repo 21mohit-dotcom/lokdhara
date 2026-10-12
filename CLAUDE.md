@@ -8,7 +8,7 @@ Lokdhara is a community-driven, research-oriented platform for preserving and di
 
 ## Current phase
 
-**Plan approved (2026-10-11); Milestones 1 and 2 done; Milestone 3 (contributor submission flow) in progress since 2026-10-12.** A load test follows M3 (ROADMAP). Implement only the current milestone in `docs/ROADMAP.md`; do not start later milestones (review, exports, production infrastructure) without the owner's go-ahead.
+**Plan approved (2026-10-11); Milestones 1 and 2 done; Milestone 3's code and the load test done (its device and user checks are still open); Milestone 4 (audio and text validation pipeline) in progress since 2026-10-12.** Implement only the current milestone in `docs/ROADMAP.md`; do not start later milestones (review, exports, production infrastructure) without the owner's go-ahead.
 
 ## Architecture (see `docs/SYSTEM_ARCHITECTURE.md`, `docs/ARCHITECTURE_DECISIONS.md`)
 
@@ -28,7 +28,7 @@ docs/                 # all planning and design docs (source of truth)
 .claude/rules/        # path-scoped rules (load when matching files are touched)
 .claude/skills/       # procedures: audio, text, database, privacy, git
 backend/              # FastAPI app/ (main, config, db, errors, security, cli, worker,
-                      #   object_store/ (ObjectStore: local + S3),
+                      #   object_store/ (ObjectStore: local + S3), audio/ (FFmpeg checks), text/,
                       #   modules/<domain>/{models,schemas,service,router}.py), migrations/, tests/,
                       #   loadtest/ (Locust, synthetic data only)
 frontend/             # Vite React app: src/{api,auth,drafts,recording,pages,components,i18n}, e2e/

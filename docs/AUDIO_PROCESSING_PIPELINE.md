@@ -2,6 +2,10 @@
 
 Status: **Proposed.** Commands below were smoke-tested with FFmpeg 6.1 on synthetic audio during planning (2026-10-11); exact flags and thresholds must be re-validated in Milestone 4 against real device recordings (Q-T1).
 
+Implementation status (Milestone 4, part 1): §3.2 probe, §3.3 full decode, and §3.4 promotion run in the `audio.validate` job (`backend/app/audio/`, `backend/app/modules/submissions/processing.py`); a `cleanup.quarantine` job then deletes the quarantine copy. Analysis, renditions, and duplicate checks follow in later parts.
+
+**FFmpeg version:** 6.1 as packaged by Ubuntu 24.04 (`6.1.1-3ubuntu5` when this was written). CI installs the same package on an `ubuntu-24.04` runner, and the worker image must use it too. The exact `-version` line of `ffmpeg` and `ffprobe` is stored in `processing_runs.tool_versions` for every validation.
+
 ## 0. Principles
 
 1. **The original is sacred.** It is stored exactly as received after validation and never modified, overwritten, or deleted by processing (ADR-009).
@@ -85,6 +89,8 @@ ffprobe -v error -show_entries \
 
 Reject if: no audio stream, more than one audio stream, any video stream with real frames (cover art in MP3/M4A is ignored), values outside §2.
 
+As built, both ffprobe and FFmpeg are told which demuxer to use (`-f matroska`, `ogg`, `wav`, `flac`, `mov`, `aac`, or `mp3`, from the container the API recognised in §3.1), so FFmpeg never guesses among its other input formats. Accepted codecs: Opus, Vorbis, AAC, MP3 (lossy), FLAC and PCM `u8`/`s16le`/`s24le`/`s32le`/`f32le` (lossless). Rejections are stored in `recordings.validation_errors` as `{"code", "reason"}`, for example `{"code": "out_of_range", "reason": "too_long"}`.
+
 ### 3.3 Full decode integrity check
 
 ```bash
@@ -92,6 +98,8 @@ ffmpeg -v error -xerror -i input -map 0:a:0 -f null -
 ```
 
 Any stderr output at `error` level → `corrupt_audio`. This also catches truncated uploads that probe correctly.
+
+As built, the same run measures `duration_ms` (from `-progress`) and stops reading just after `LKD_MAX_AUDIO_SECONDS`, so an over-long file costs no more than the limit. Tests showed that a cut-off WebM, WAV, FLAC, M4A, or AAC file is caught, but an MP3 or Ogg file cut between two frames decodes cleanly and is simply shorter; the reviewer hears that. Recordings under `LKD_MIN_AUDIO_SECONDS` are not rejected here: `audio.analyze` flags them `too_short` (§3.5).
 
 ### 3.4 Promotion
 

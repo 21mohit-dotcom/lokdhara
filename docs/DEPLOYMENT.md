@@ -16,7 +16,7 @@ cd frontend && npm ci && npm run dev
 ```
 
 - Object storage in development: local filesystem adapter under `./.local-storage/` (git-ignored).
-- FFmpeg: installed locally or run the worker in the Compose `worker` service.
+- FFmpeg: installed locally or run the worker in the Compose `worker` service. The pinned version is 6.1 from Ubuntu 24.04 ([AUDIO_PROCESSING_PIPELINE.md](AUDIO_PROCESSING_PIPELINE.md)); on Ubuntu, `sudo apt-get install ffmpeg`.
 - Seed command creates synthetic users (one per role) and generated audio fixtures — never real data.
 
 ## 2. Environment variables
