@@ -1,6 +1,6 @@
 # Database Schema
 
-Status: **Implemented except datasets.** §1–§5 and §7 are implemented by migrations `0001`–`0007` in `backend/migrations/`; §6 (datasets) is the logical schema for the dataset milestone. Where the migrations refine this document, ADR-020 records why. Field meanings are in [DATA_DICTIONARY.md](DATA_DICTIONARY.md).
+Status: **Implemented except datasets.** §1–§5 and §7 are implemented by migrations `0001`–`0008` in `backend/migrations/`; §6 (datasets) is the logical schema for the dataset milestone. Where the migrations refine this document, ADR-020 records why. Field meanings are in [DATA_DICTIONARY.md](DATA_DICTIONARY.md).
 
 Conventions:
 
@@ -112,6 +112,7 @@ CHECK: `text_sha256` equals the SHA-256 of `body_markdown`. Only `retired_at` ma
 | allow_ai_training | boolean NOT NULL DEFAULT false | |
 | allow_commercial_use | boolean NOT NULL DEFAULT false | |
 | attribution_preference | text CHECK IN ('pseudonymous','name','none') DEFAULT 'pseudonymous' | |
+| demographics_consented | boolean NOT NULL DEFAULT false | Answer to the demographics question (migration `0008`); `speakers.demographics_consented` mirrors the active record, and a No erases stored demographics. |
 | applies_to_past_contributions | boolean NOT NULL DEFAULT false | If true, a *wider* new record also widens earlier submissions; narrowing always applies to past submissions. |
 | notes | text NULL | |
 

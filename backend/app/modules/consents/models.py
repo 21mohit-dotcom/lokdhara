@@ -11,7 +11,8 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.db import Base
 from app.modules._columns import fk, now_default, optional_fk, uuid_pk
 
-# The seven permissions a speaker grants separately (docs/CONSENT_AND_DATA_GOVERNANCE.md).
+# Yes/no use permissions (docs/CONSENT_AND_DATA_GOVERNANCE.md §3.1). The other questions are
+# attribution_preference and demographics_consented.
 PERMISSIONS = (
     "allow_store_and_review",
     "allow_research",
@@ -61,6 +62,7 @@ class ConsentRecord(Base):
     allow_ai_training: Mapped[bool] = mapped_column(Boolean, server_default="false")
     allow_commercial_use: Mapped[bool] = mapped_column(Boolean, server_default="false")
     attribution_preference: Mapped[str] = mapped_column(Text, server_default="pseudonymous")
+    demographics_consented: Mapped[bool] = mapped_column(Boolean, server_default="false")
     applies_to_past_contributions: Mapped[bool] = mapped_column(Boolean, server_default="false")
     notes: Mapped[str | None] = mapped_column(Text)
 
