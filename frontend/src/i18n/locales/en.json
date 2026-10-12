@@ -5,15 +5,256 @@
   },
   "nav": {
     "home": "Home",
-    "language": "Language"
+    "language": "Language",
+    "signOut": "Sign out"
   },
   "home": {
+    "greeting": "Welcome, {{name}}",
     "newRecording": "New recording",
     "mySubmissions": "My submissions",
-    "comingSoon": "This part of Lokdhara is being built."
+    "onDevice_one": "{{count}} on this phone",
+    "onDevice_other": "{{count}} on this phone"
   },
   "notFound": {
     "title": "Page not found",
     "backHome": "Go to home"
+  },
+  "login": {
+    "title": "Sign in",
+    "inviteOnly": "Lokdhara is by invitation. Ask your coordinator for an account.",
+    "username": "Username",
+    "password": "Password",
+    "submit": "Sign in"
+  },
+  "speaker": {
+    "title": "Whose voice or text is this?",
+    "myself": "Mine",
+    "newPerson": "Someone else (new person)",
+    "registered": "People you registered",
+    "hasConsent": "Consent recorded",
+    "needsConsent": "Consent needed first"
+  },
+  "consent": {
+    "title": "Consent for {{code}}",
+    "testForm": "Test form: do not use it to record anyone for real.",
+    "defaultNo": "Each question is answered separately. Every answer starts as No.",
+    "yes": "Yes",
+    "no": "No",
+    "storeRequired": "Without permission to keep and review the recording, nothing can be recorded.",
+    "questions": {
+      "allow_store_and_review": "May we keep the recording safely and let trained reviewers listen to it and check the writing?",
+      "allow_research": "May approved researchers study it for language research?",
+      "allow_public_access": "May anyone on the internet listen to or read it in future?",
+      "allow_ai_training": "May it be used to build computer tools, such as speech recognition for Mundari?",
+      "allow_commercial_use": "May companies use it in products they sell?",
+      "demographics_consented": "May we record age group, home area, and languages spoken?",
+      "attribution": "How should the speaker be credited?"
+    },
+    "attribution": {
+      "pseudonymous": "A code instead of the name",
+      "name": "By name",
+      "none": "No credit"
+    },
+    "method": {
+      "legend": "How was consent given?",
+      "in_app": "The speaker confirmed on this screen",
+      "oral_recorded": "Spoken aloud and recorded",
+      "paper_reference": "On a paper form"
+    },
+    "oralHint": "Record the speaker answering the questions aloud. This recording is kept separately and is never part of the collection.",
+    "paperReference": "Paper form reference number",
+    "save": "Save consent"
+  },
+  "record": {
+    "recording": "Recording",
+    "stop": "Stop",
+    "start": "Start recording",
+    "again": "Record again",
+    "chooseFile": "Choose an audio file",
+    "noMicrophone": "The microphone could not be used. Allow microphone access, or choose a file instead.",
+    "tooShort": "That was shorter than a second. Please record again.",
+    "ready": "Recording ready. Listen to check it.",
+    "listen": "Listen to the recording"
+  },
+  "prompt": {
+    "typeLegend": "What should the speaker respond to?",
+    "image": "A picture",
+    "situation": "A situation",
+    "scriptLegend": "Which script should the sentence be in?",
+    "another": "Show another",
+    "imageAlt": "Picture to describe",
+    "listen": "Listen to the prompt"
+  },
+  "scripts": {
+    "Deva": "Devanagari",
+    "Latn": "Latin (Roman)",
+    "Nagm": "Mundari Bani (Nag Mundari)",
+    "Zyyy": "Mixed or other"
+  },
+  "text": {
+    "hint": "Write exactly as you would. There is no single correct spelling.",
+    "transcriptionHint": "Optional: write down what is said in the recording, as you hear it.",
+    "entryType": "What are you writing?",
+    "script": "Script",
+    "mundari": "Mundari text",
+    "transcription": "What is said",
+    "translation": {
+      "hi": "Hindi translation (optional)",
+      "en": "English translation (optional)"
+    }
+  },
+  "entryTypes": {
+    "word": "A word",
+    "phrase": "A phrase",
+    "sentence": "A sentence",
+    "paragraph": "A paragraph",
+    "long_text": "A long text (story, song)"
+  },
+  "details": {
+    "contentType": "What kind of content is it?",
+    "title": "Title (optional)",
+    "dialect": "Dialect, as you call it (optional)",
+    "region": "Area (optional)",
+    "regionHint": "A district or block is enough, never a village or address.",
+    "recordedOn": "Date recorded (optional)",
+    "setting": "Where was it recorded?",
+    "equipment": "What was it recorded with?",
+    "speakerCount": "How many people speak in it?",
+    "notes": "Notes (optional)",
+    "notesHint": "Do not write names or contact details here."
+  },
+  "contentTypes": {
+    "story": "Story",
+    "conversation": "Conversation",
+    "vocabulary": "Words",
+    "song": "Song",
+    "sentence_list": "Sentences",
+    "other": "Other"
+  },
+  "settings": {
+    "indoor_quiet": "Indoors, quiet",
+    "indoor_noisy": "Indoors, noisy",
+    "outdoor": "Outdoors",
+    "unknown": "Not sure"
+  },
+  "equipment": {
+    "phone_builtin_mic": "Phone",
+    "phone_external_mic": "Phone with external microphone",
+    "field_recorder": "Recorder",
+    "unknown": "Not sure"
+  },
+  "wizard": {
+    "speaker": "Speaker {{code}}",
+    "progress": "Step {{step}} of {{total}}",
+    "steps": {
+      "kind": "What would you like to add?",
+      "mode": "How will you record?",
+      "prompt": "Choose a prompt",
+      "audio": "Record",
+      "text": "Text",
+      "details": "Details",
+      "review": "Check and send"
+    },
+    "kindLegend": "Choose one",
+    "modeLegend": "Choose one",
+    "back": "Back",
+    "next": "Next",
+    "saveAndUpload": "Save and upload",
+    "saveForLater": "Save for later",
+    "leave": "Leave (your work stays on this phone)"
+  },
+  "kinds": {
+    "audio": "Audio",
+    "text": "Text",
+    "audio_text": "Audio and text"
+  },
+  "modes": {
+    "free": {
+      "label": "Speak freely",
+      "hint": "A story, a memory, anything"
+    },
+    "prompted": {
+      "label": "Respond to a picture or situation",
+      "hint": "We show something to talk about"
+    },
+    "read": {
+      "label": "Read a sentence",
+      "hint": "We show a sentence to read aloud"
+    }
+  },
+  "review": {
+    "kind": "Type",
+    "mode": "Recording",
+    "prompt": "Prompt",
+    "audio": "Audio",
+    "audioSource": {
+      "browser_recorder": "Recorded on this phone",
+      "file_upload": "Chosen from a file"
+    },
+    "text": {
+      "standalone": "Text",
+      "transcription": "What is said",
+      "translation": "Translation ({{language}})"
+    }
+  },
+  "submissions": {
+    "title": "My submissions",
+    "onDevice": "On this phone",
+    "uploading": "Uploading…",
+    "waiting": "Waiting to upload",
+    "unfinished": "Not finished",
+    "continue": "Continue",
+    "discard": "Delete",
+    "discardConfirm": "Delete this draft from the phone? This cannot be undone.",
+    "retry": "Try uploading now",
+    "keptOnDevice": "Drafts stay on this phone until they are uploaded, even without internet.",
+    "sent": "Sent",
+    "none": "Nothing sent yet."
+  },
+  "statuses": {
+    "draft": "Draft",
+    "uploading": "Uploading",
+    "processing": "Being checked",
+    "processing_failed": "Check failed, the team will look at it",
+    "rejected_invalid": "File could not be used",
+    "awaiting_review": "Waiting for review",
+    "in_review": "In review",
+    "changes_requested": "Changes requested",
+    "approved": "Approved",
+    "rejected": "Not accepted",
+    "withdrawn": "Withdrawn"
+  },
+  "errors": {
+    "generic": "Something went wrong ({{code}}). Please try again.",
+    "network_error": "No connection. Your work is saved on this phone and will upload when you are back online.",
+    "unexpected_error": "Something went wrong. Please try again.",
+    "draft_not_found": "This draft is no longer on this phone.",
+    "invalid_credentials": "The username or password is not right.",
+    "login_locked": "Too many attempts. Please wait a little and try again.",
+    "not_authenticated": "Please sign in again.",
+    "csrf_failed": "Please reload the page and try again.",
+    "forbidden": "You do not have permission for this.",
+    "speaker_not_found": "This person could not be found.",
+    "speaker_withdrawn": "This person has withdrawn from the project.",
+    "consent_form_not_found": "No consent form is available yet.",
+    "store_consent_required": "Permission to keep and review the recording is needed to take part.",
+    "minors_not_enabled": "Recording people under 18 is not possible yet.",
+    "evidence_required": "Please record the spoken consent.",
+    "evidence_not_audio": "The consent recording is not an audio file.",
+    "evidence_too_large": "The consent recording is too large.",
+    "no_prompt_available": "No more prompts of this kind right now.",
+    "prompt_not_found": "This prompt is no longer available.",
+    "prompt_retired": "This prompt is no longer used. Please choose another.",
+    "consent_required": "Consent is needed before uploading.",
+    "bad_signature": "This file is not a supported audio format.",
+    "too_large": "The file is too large.",
+    "upload_rate_limited": "Too many uploads in the last hour. It will try again later.",
+    "recording_exists": "This submission already has its recording.",
+    "recording_missing": "The uploaded recording was lost. Please record again.",
+    "text_empty": "The text is empty.",
+    "text_too_long": "The text is too long for this kind of entry.",
+    "disallowed_character": "The text contains a hidden or unusual character that cannot be saved.",
+    "submission_not_editable": "This submission can no longer be changed.",
+    "validation_failed": "Some details are not valid. Please check them."
   }
 }

@@ -18,7 +18,7 @@ Status: **Proposed.** Tools are confirmed in Milestone 1.
 | Unit (frontend) | Vitest + Testing Library | Components, i18n completeness, draft storage logic | CI |
 | Integration (backend) | pytest + httpx + PostgreSQL service container + local object store | API endpoints end-to-end through DB and storage; migrations | CI |
 | Worker integration | pytest + FFmpeg in CI image | Real FFmpeg on generated fixtures: validate, analyse, renditions, dedupe | CI |
-| End-to-end | Playwright (Chromium; WebKit for Safari approximation) | Contributor submits (fake media stream), reviewer approves, researcher sees item | CI on main + nightly |
+| End-to-end | Playwright (Chromium; WebKit for Safari approximation) | Contributor submits (fake media stream), including after a lost connection; reviewer approves and researcher sees the item once those milestones exist | CI on every pull request |
 | Manual device tests | Real low-end Android, iPhone if available | Recording, upload on throttled network, Nag Mundari rendering | Each milestone from M3 |
 
 ## 3. Required test suites by risk
@@ -75,7 +75,7 @@ Generated fixtures: 3 s sine (WAV/FLAC/MP3/Opus-WebM/AAC-M4A), 5 s silence, clip
 | Forbidden files: fail on audio extensions, `data/`, `storage/`, `exports/`, `.env` (except `.env.example`), DB dumps | Yes |
 | Secret scan (gitleaks or GitHub secret scanning) | Yes |
 | Dependency audit (`pip-audit`, `npm audit --omit=dev`) | No (reported) |
-| Playwright E2E | On main + nightly |
+| Playwright E2E (`frontend/e2e/`) | Yes |
 
 ## 5. Coverage expectations
 

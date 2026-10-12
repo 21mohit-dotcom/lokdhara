@@ -155,7 +155,7 @@ Duplicates are **never deleted automatically**; a reviewer decides.
 ## 4. Client-side (browser) responsibilities
 
 - Prefer `MediaRecorder` with `audio/webm;codecs=opus`, falling back to `audio/mp4` (Safari) via `MediaRecorder.isTypeSupported()`; record which was used.
-- Show a live level meter and a "too quiet" hint; warn on recordings under 1 s.
+- Show a live level meter and a "too quiet" hint; warn on recordings under 1 s. *(M3 shows a timer and the under-1 s warning; the level meter is not built yet.)*
 - Save the recorded Blob to IndexedDB **before** upload starts.
 - Do **not** transcode in the browser (battery, CPU on low-end phones, and loss of the true original).
 

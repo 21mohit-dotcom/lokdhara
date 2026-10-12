@@ -1,0 +1,184 @@
+import { screen, waitFor, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+import i18n from '../i18n'
+import { memoryDraftStore } from '../drafts/store'
+import { emptyDetails, type Draft } from '../drafts/types'
+import { fakeServer, SESSION, SPEAKER, type FakeRequest } from '../test/fakeServer'
+import { renderApp } from '../test/render'
+import { safeNext } from './ConsentPage'
+
+const FORM = {
+  id: 'f1',
+  version: 'test-1',
+  language: 'en',
+  body_markdown: '# About the project\n\nThis is a **test** form.',
+  is_test_form: true,
+}
+
+const next = (name = 'Next') => screen.getByRole('button', { name })
+
+beforeEach(async () => {
+  await i18n.changeLanguage('en')
+  vi.stubGlobal(
+    'URL',
+    Object.assign(URL, { createObjectURL: () => 'blob:x', revokeObjectURL() {} }),
+  )
+})
+afterEach(() => vi.unstubAllGlobals())
+
+describe('consent', () => {
+  it('starts every answer at No and needs permission to keep the recording', async () => {
+    const { requests } = fakeServer({
+      'GET /auth/me': () => ({ body: SESSION }),
+      'GET /speakers/s1': () => ({ body: { ...SPEAKER, has_active_consent: false } }),
+      'GET /consent-forms/current.*': () => ({ body: FORM }),
+      'POST /speakers/s1/consents': () => ({ status: 201, body: {} }),
+      'GET /submissions.*': () => ({ body: { items: [] } }),
+    })
+    const { router } = renderApp('/speakers/s1/consent?next=/submissions')
+
+    expect(await screen.findByText(/Test form/)).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'About the project' })).toBeInTheDocument()
+    const groups = screen.getAllByRole('group').filter((g) => g.tagName === 'FIELDSET')
+    for (const group of groups.slice(0, 6)) {
+      expect(within(group).getByRole('radio', { name: 'No' })).toBeChecked()
+    }
+    const save = screen.getByRole('button', { name: 'Save consent' })
+    expect(save).toBeDisabled()
+
+    await userEvent.click(within(groups[0]!).getByRole('radio', { name: 'Yes' }))
+    await userEvent.click(save)
+    await waitFor(() => expect(router.state.location.pathname).toBe('/submissions'))
+
+    const sent = requests.find((r) => r.method === 'POST')?.body as FormData
+    expect(JSON.parse(String(sent.get('consent')))).toMatchObject({
+      consent_form_id: 'f1',
+      method: 'in_app',
+      allow_store_and_review: true,
+      allow_research: false,
+      allow_public_access: false,
+      allow_ai_training: false,
+      allow_commercial_use: false,
+      attribution_preference: 'pseudonymous',
+    })
+  })
+})
+
+describe('safeNext', () => {
+  it('only returns to pages of this site', () => {
+    expect(safeNext('/contribute/s1/new')).toBe('/contribute/s1/new')
+    expect(safeNext('//evil.example/x')).toBe('/')
+    expect(safeNext('https://evil.example')).toBe('/')
+    expect(safeNext(null)).toBe('/')
+  })
+})
+
+describe('contributing', () => {
+  function server(extra: Record<string, (r: FakeRequest) => object> = {}) {
+    return fakeServer({
+      'GET /auth/me': () => ({ body: SESSION }),
+      'GET /speakers/s1': () => ({ body: SPEAKER }),
+      'GET /submissions\\?.*': () => ({ body: { items: [] } }),
+      ...extra,
+    })
+  }
+
+  it('keeps an unfinished text on the phone without uploading it', async () => {
+    const { requests } = server()
+    const { store } = renderApp('/contribute/s1/new')
+
+    await userEvent.click(await screen.findByRole('radio', { name: 'Text' }))
+    await userEvent.click(next())
+    expect(next()).toBeDisabled() // the text itself is required
+    await userEvent.type(screen.getByLabelText('Mundari text'), 'यह परीक्षण है')
+    await userEvent.type(screen.getByLabelText('English translation (optional)'), 'A test')
+    await userEvent.click(next())
+    await userEvent.type(screen.getByLabelText('Title (optional)'), 'Practice')
+    await userEvent.click(next())
+    expect(screen.getByText('A test')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Save for later' }))
+
+    expect(await screen.findByRole('heading', { name: 'My submissions' })).toBeInTheDocument()
+    expect(screen.getByText('Practice')).toBeInTheDocument()
+    expect(screen.getByText('Not finished')).toBeInTheDocument()
+    const [saved] = await store.list()
+    expect(saved).toMatchObject({ kind: 'text', ready: false, ownerId: 'u1' })
+    expect(saved?.texts.map((text) => text.key)).toEqual(['main', 'translation-en'])
+    expect(requests.some((r) => r.method === 'POST')).toBe(false)
+  })
+
+  it('uploads a recording from a file and lists it as sent', async () => {
+    const sent = { id: 'sub1', kind: 'audio', status: 'processing', title: null }
+    let submitted = false
+    const { requests } = server({
+      'POST /submissions': () => ({ status: 201, body: { id: 'sub1' } }),
+      'POST /submissions/sub1/recordings': () => ({
+        status: 202,
+        body: { recording_id: 'rec1', upload_status: 'quarantined' },
+      }),
+      'POST /submissions/sub1/submit': () => {
+        submitted = true
+        return { body: sent }
+      },
+      'GET /submissions\\?.*': () => ({
+        body: { items: submitted ? [{ ...sent, created_at: '2026-10-12T00:00:00Z' }] : [] },
+      }),
+    })
+    const { store } = renderApp('/contribute/s1/new')
+
+    await userEvent.click(await screen.findByRole('radio', { name: 'Audio' }))
+    await userEvent.click(next())
+    await userEvent.click(screen.getByRole('radio', { name: /Speak freely/ }))
+    await userEvent.click(next())
+    const file = new File(['synthetic'], 'test.webm', { type: 'audio/webm' })
+    await userEvent.upload(screen.getByLabelText(/Choose an audio file/), file)
+    expect(screen.getByText(/Recording ready/)).toBeInTheDocument()
+    await userEvent.click(next()) // the transcription is optional
+    await userEvent.click(next())
+    await userEvent.click(next())
+    await userEvent.click(screen.getByRole('button', { name: 'Save and upload' }))
+
+    expect(await screen.findByText('Being checked')).toBeInTheDocument()
+    const upload = requests.find((r) => r.path.endsWith('/recordings'))
+    expect(upload?.headers.get('Idempotency-Key')).toBeTruthy()
+    expect((upload?.body as FormData).get('source')).toBe('file_upload')
+    expect(await store.list()).toEqual([]) // nothing left on the phone once the server has it
+  })
+
+  it("does not show or upload another person's drafts on a shared phone", async () => {
+    const { requests } = server()
+    const store = memoryDraftStore()
+    const theirs: Draft = {
+      clientSubmissionId: 'c2',
+      ownerId: 'someone-else',
+      speakerId: 's9',
+      speakerCode: 'SPK-OTHER1',
+      collectionMethod: 'self_recorded',
+      kind: 'text',
+      texts: [
+        {
+          key: 'main',
+          layerType: 'standalone',
+          entryType: 'word',
+          languageTag: 'unr',
+          scriptCode: 'Deva',
+          content: 'क',
+        },
+      ],
+      details: { ...emptyDetails(), title: 'Not yours' },
+      uploadKey: 'k2',
+      ready: true,
+      progress: {},
+      createdAt: '2026-10-12T00:00:00Z',
+      updatedAt: '2026-10-12T00:00:00Z',
+    }
+    await store.put(theirs)
+    renderApp('/submissions', store)
+
+    expect(await screen.findByText('Nothing sent yet.')).toBeInTheDocument()
+    expect(screen.queryByText('Not yours')).not.toBeInTheDocument()
+    expect(requests.some((r) => r.method === 'POST')).toBe(false)
+  })
+})
