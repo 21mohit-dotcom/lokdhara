@@ -38,7 +38,7 @@ Inside the monolith, code is organised by **domain module**, each with its own m
 |--------|-------------|-------------|
 | `identity` | users, user_roles, sessions, invitations | sign-in, role checks |
 | `speakers` | speakers, speaker_identities | create speaker, restricted identity access |
-| `consent` | consent_forms, consent_records, withdrawal_requests | capture consent, compute effective permissions, process withdrawal |
+| `consents` | consent_forms, consent_records, withdrawal_requests | capture consent, compute effective permissions, process withdrawal |
 | `submissions` | submissions, recordings, renditions, text_layers, text_revisions | create draft, accept upload, add revisions |
 | `processing` | processing_runs (+ queue tables) | enqueue, run, retry, record tool versions |
 | `review` | review_events, restrictions | queue, decisions, restriction flags |
@@ -57,9 +57,10 @@ backend/
     config.py            # pydantic-settings
     db.py
     modules/
-      identity/  speakers/  consent/  submissions/
+      identity/  speakers/  consents/  submissions/
       processing/  review/  datasets/  audit/
         (each: models.py, schemas.py, service.py, router.py)
+        (names must pass scripts/check-forbidden-files.sh, hence "consents")
     object_store/        # ObjectStore + adapters (not "storage/": CI blocks that name for data)
     audio/               # ffprobe/ffmpeg wrappers, pure functions
     text/                # normalisation, script detection, pure functions

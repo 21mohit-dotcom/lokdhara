@@ -18,7 +18,7 @@ Source of truth: `docs/DATABASE_SCHEMA.md`, `docs/DATA_DICTIONARY.md`, `docs/ACC
 - PostgreSQL 18; `id uuid PRIMARY KEY DEFAULT uuidv7()`; `timestamptz` in UTC.
 - Enumerations as `text` + `CHECK (col IN (...))`, not PostgreSQL ENUM types.
 - Foreign keys always declared; choose `ON DELETE RESTRICT` by default. Deletion of personal data goes through the erasure routine, not cascades.
-- Append-only tables (`text_revisions`, `review_events`, `audit_events`, `consent_records`, `renditions`, `dataset_release_items`, `processing_runs`, `prompts`) keep triggers that reject UPDATE/DELETE for role `app_rw`; only `app_erasure` may delete/tombstone.
+- Append-only tables (`text_revisions`, `review_events`, `audit_events`, `consent_records`, `renditions`, `dataset_release_items`, `processing_runs`, `prompts`) keep triggers that reject UPDATE/DELETE for role `app_rw`; only `app_erasure` may delete/tombstone. Use `lkd_reject_change()` for fully immutable rows, `lkd_guard_columns(...)` when listed columns may change, `lkd_freeze_columns(...)` to pin identity columns (ADR-020); update the column list when you change a guarded table.
 - JSONB only for open-ended metadata, with an allow-list validated in the API.
 - Restricted data (identity, contacts) lives in separate tables with application-level encryption.
 - Visibility must go through the effective-access predicate; never add a query path that bypasses it.
