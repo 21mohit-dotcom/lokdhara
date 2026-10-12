@@ -14,10 +14,10 @@ from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.orm import Session
 
 from app.modules.consents.models import ConsentForm, ConsentRecord
+from app.modules.prompts.models import Prompt
 from app.modules.review.models import ReviewEvent
 from app.modules.speakers.models import Speaker
 from app.modules.submissions.models import (
-    Prompt,
     Recording,
     Rendition,
     Submission,
