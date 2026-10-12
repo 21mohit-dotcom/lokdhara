@@ -2,6 +2,7 @@
 
 import json
 import uuid
+from collections import Counter
 from pathlib import Path
 from typing import Any
 
@@ -11,6 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.modules.audit.models import AuditEvent
+from app.modules.prompts import service
 from app.modules.prompts.models import Prompt
 from tests.conftest import MakeUser, TestUser, act_as, requires_postgres
 
@@ -19,6 +21,7 @@ pytestmark = requires_postgres
 ADMIN = "/api/v1/admin/prompts"
 # First bytes of each format: enough for the format check. Generated, never real media.
 FAKE_PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 64
+FAKE_OGG = b"OggS\x00\x02" + b"\x00" * 64
 
 
 def _situation(key: str = "farm-morning", **extra: Any) -> dict[str, Any]:
@@ -170,3 +173,85 @@ def test_approval_and_retirement_rules(client: TestClient, admin: TestUser) -> N
     assert client.post(f"{ADMIN}/{prompt['id']}/retire").json()["code"] == "prompt_retired"
     draft = _create(client, _situation("other-key")).json()
     assert client.post(f"{ADMIN}/{draft['id']}/retire").json()["status"] == "retired"
+
+
+# ------------------------------------------------------------------ what contributors see
+
+
+def test_contributors_get_approved_prompts_only(
+    client: TestClient, admin: TestUser, make_user: MakeUser
+) -> None:
+    draft = _create(client, _situation("draft-one")).json()
+    approved = _approved(client, _situation("approved-one"))
+
+    act_as(client, make_user("asha", "contributor"))
+    shown = client.get("/api/v1/prompts/next", params={"type": "situation"})
+    assert shown.status_code == 200, shown.text
+    assert shown.json()["id"] == approved["id"]
+    assert client.get(f"/api/v1/prompts/{draft['id']}").status_code == 404
+    none_left = client.get(
+        "/api/v1/prompts/next", params={"type": "situation", "exclude": [approved["id"]]}
+    )
+    assert none_left.json()["code"] == "no_prompt_available"
+
+
+def test_researchers_are_not_shown_prompts(
+    client: TestClient, admin: TestUser, make_user: MakeUser
+) -> None:
+    _approved(client, _situation())
+    act_as(client, make_user("meera", "researcher"))
+    assert client.get("/api/v1/prompts/next", params={"type": "situation"}).status_code == 403
+
+
+def test_read_prompts_filter_by_script(
+    client: TestClient, admin: TestUser, make_user: MakeUser
+) -> None:
+    latin = _approved(
+        client, _situation("read-latn", prompt_type="read_sentence", script_code="Latn")
+    )
+    _approved(client, _situation("read-deva", prompt_type="read_sentence", script_code="Deva"))
+    act_as(client, make_user("asha", "contributor"))
+    for _ in range(5):
+        shown = client.get(
+            "/api/v1/prompts/next", params={"type": "read_sentence", "script": "Latn"}
+        )
+        assert shown.json()["id"] == latin["id"]
+
+
+def test_media_is_served_through_short_lived_urls(
+    client: TestClient, admin: TestUser, make_user: MakeUser
+) -> None:
+    image = _situation("img-one", prompt_type="image", text=None)
+    prompt = _approved(client, image, image=FAKE_PNG, audio=FAKE_OGG)
+    act_as(client, make_user("asha", "contributor"))
+    shown = client.get(f"/api/v1/prompts/{prompt['id']}").json()
+    assert "expires=" in shown["image_url"]
+    assert "expires=" in shown["audio_url"]
+
+
+def test_topics_are_balanced(db: Session, make_user: MakeUser) -> None:
+    author = make_user("admin", "admin")
+    for index in range(9):  # one crowded topic
+        db.add(_row(f"crowded-{index}", ["farming"], author.id))
+    db.add(_row("lonely-one", ["festival"], author.id))
+    db.commit()
+    picks = Counter(
+        service.next_prompt(db, prompt_type="situation", script_code=None, exclude=[]).topic_tags[0]
+        for _ in range(200)
+    )
+    # Each topic is picked about half the time, not 90% / 10%.
+    assert picks["festival"] > 60
+
+
+def _row(key: str, topics: list[str], author: uuid.UUID) -> Prompt:
+    return Prompt(
+        prompt_key=key,
+        version=1,
+        prompt_type="situation",
+        text="Describe something.",
+        source_and_licence="test",
+        topic_tags=topics,
+        status="approved",
+        approved_by=author,
+        created_by=author,
+    )

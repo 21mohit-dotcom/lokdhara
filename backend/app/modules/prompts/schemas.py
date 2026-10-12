@@ -68,3 +68,15 @@ class PromptOut(BaseModel):
 
 class PromptListOut(BaseModel):
     items: list[PromptOut]
+
+
+class ContributorPromptOut(BaseModel):
+    """What a contributor sees while recording. Media URLs are short-lived."""
+
+    id: uuid.UUID
+    prompt_type: PromptType
+    text: str | None
+    text_language_tag: str | None
+    script_code: str | None
+    image_url: str | None
+    audio_url: str | None

@@ -12,17 +12,21 @@ from app.modules.identity.service import AuthenticatedUser
 from app.modules.prompts import service
 from app.modules.prompts.models import Prompt
 from app.modules.prompts.schemas import (
+    ContributorPromptOut,
     PromptCreateRequest,
     PromptListOut,
     PromptOut,
     PromptStatus,
     PromptType,
     PromptVersionRequest,
+    Script,
 )
+from app.modules.speakers.service import SELF_SPEAKER_ROLES
 from app.object_store import ObjectStore, get_object_store
 
 router = APIRouter(tags=["prompts"])
 
+Recorder = Annotated[AuthenticatedUser, Depends(require_roles(*SELF_SPEAKER_ROLES))]
 Staff = Annotated[AuthenticatedUser, Depends(require_roles(*service.STAFF_ROLES))]
 Admin = Annotated[AuthenticatedUser, Depends(require_roles("admin"))]
 Store = Annotated[ObjectStore, Depends(get_object_store)]
@@ -35,6 +39,44 @@ def _library_out(prompt: Prompt) -> PromptOut:
         **fields,
         has_image=prompt.image_object_key is not None,
         has_audio=prompt.prompt_audio_object_key is not None,
+    )
+
+
+@router.get("/prompts/next")
+def next_prompt(
+    _user: Recorder,
+    db: DbSession,
+    settings: SettingsDep,
+    store: Store,
+    prompt_type: Annotated[PromptType, Query(alias="type")],
+    script: Script | None = None,
+    exclude: Annotated[list[uuid.UUID] | None, Query()] = None,
+) -> ContributorPromptOut:
+    """One approved prompt, skipping the ones in `exclude` (already shown in this session)."""
+    prompt = service.next_prompt(
+        db, prompt_type=prompt_type, script_code=script, exclude=exclude or []
+    )
+    return _contributor_out(prompt, store, settings)
+
+
+@router.get("/prompts/{prompt_id}")
+def get_prompt(
+    prompt_id: uuid.UUID, user: Recorder, db: DbSession, settings: SettingsDep, store: Store
+) -> ContributorPromptOut:
+    return _contributor_out(service.get_prompt(db, user, prompt_id), store, settings)
+
+
+def _contributor_out(
+    prompt: Prompt, store: ObjectStore, settings: SettingsDep
+) -> ContributorPromptOut:
+    return ContributorPromptOut(
+        id=prompt.id,
+        prompt_type=prompt.prompt_type,
+        text=prompt.text,
+        text_language_tag=prompt.text_language_tag,
+        script_code=prompt.script_code,
+        image_url=service.signed_media_url(store, settings, prompt.image_object_key),
+        audio_url=service.signed_media_url(store, settings, prompt.prompt_audio_object_key),
     )
 
 

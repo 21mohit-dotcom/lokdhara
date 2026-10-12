@@ -1,14 +1,16 @@
 """The prompt library for prompted and read speech (ADR-018, docs/RECORDING_MODES.md).
 
 Prompts are versioned: editing creates a new draft version, and recordings keep pointing at the
-exact version they used. Images and spoken prompts are team-made media in the derived bucket.
+exact version they used. Only approved prompts are shown to contributors. Images and spoken
+prompts are team-made media in the derived bucket, served through short-lived signed URLs.
 """
 
+import secrets
 import uuid
 from collections.abc import Callable
 from typing import BinaryIO
 
-from sqlalchemy import func, select, update
+from sqlalchemy import any_, func, select, update
 from sqlalchemy.orm import Session
 
 from app.audio_formats import CONTENT_TYPES as AUDIO_TYPES
@@ -26,6 +28,7 @@ from app.object_store import Bucket, ObjectStore, ObjectTooLarge, new_key
 
 STAFF_ROLES = ("reviewer", "admin")
 _SNIFF_BYTES = 16
+_MAX_EXCLUDED = 100
 
 
 def _not_found() -> ApiError:
@@ -33,6 +36,11 @@ def _not_found() -> ApiError:
 
 
 # ------------------------------------------------------------------ media
+
+
+def media_content_type(key: str) -> str:
+    extension = key.rsplit(".", 1)[-1]
+    return IMAGE_TYPES.get(extension) or AUDIO_TYPES[extension]
 
 
 def _store_media(
@@ -258,4 +266,58 @@ def _audit(
         target_type="prompt",
         target_id=prompt.id,
         details={"prompt_key": prompt.prompt_key, "version": prompt.version, **extra},
+    )
+
+
+# ------------------------------------------------------------------ recording (contributors)
+
+
+def get_prompt(db: Session, user: AuthenticatedUser, prompt_id: uuid.UUID) -> Prompt:
+    prompt = db.get(Prompt, prompt_id)
+    if prompt is None or (prompt.status != "approved" and not user.has_role(*STAFF_ROLES)):
+        raise _not_found()
+    return prompt
+
+
+def next_prompt(
+    db: Session, *, prompt_type: str, script_code: str | None, exclude: list[uuid.UUID]
+) -> Prompt:
+    """A random approved prompt, balanced by topic: first a topic, then a prompt within it, so
+    a topic with many prompts does not crowd out the others."""
+    if len(exclude) > _MAX_EXCLUDED:
+        exclude = exclude[-_MAX_EXCLUDED:]
+    conditions = [Prompt.status == "approved", Prompt.prompt_type == prompt_type]
+    if script_code is not None:
+        conditions.append(Prompt.script_code == script_code)
+    if exclude:
+        conditions.append(Prompt.id.not_in(exclude))
+
+    topics = sorted(
+        db.scalars(select(func.unnest(Prompt.topic_tags)).where(*conditions).distinct()).all()
+    )
+    untagged = db.scalar(
+        select(Prompt.id).where(*conditions, func.cardinality(Prompt.topic_tags) == 0).limit(1)
+    )
+    buckets: list[str | None] = [*topics, *([None] if untagged else [])]
+    if not buckets:
+        raise ApiError(404, "no_prompt_available", "There are no more prompts of this kind.")
+    topic = secrets.choice(buckets)
+    if topic is None:
+        conditions.append(func.cardinality(Prompt.topic_tags) == 0)
+    else:
+        conditions.append(any_(Prompt.topic_tags) == topic)
+    candidates = list(db.scalars(select(Prompt.id).where(*conditions)))
+    chosen = db.get(Prompt, secrets.choice(candidates))
+    assert chosen is not None  # noqa: S101 - just selected under the same conditions
+    return chosen
+
+
+def signed_media_url(store: ObjectStore, settings: Settings, key: str | None) -> str | None:
+    if key is None:
+        return None
+    return store.signed_url(
+        Bucket.DERIVED,
+        key,
+        ttl_seconds=settings.signed_url_ttl_seconds,
+        content_type=media_content_type(key),
     )
