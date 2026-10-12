@@ -100,6 +100,8 @@ Speakers and consent (except withdrawal requests, which come with the withdrawal
 | POST | `/admin/prompts/{id}/approve` · `/retire` | admin 🔒 | Status change |
 | POST | `/admin/prompts/{id}/versions` | reviewer/admin 🔒 | Edit = new version |
 
+Implemented in Milestone 3. `POST /admin/prompts` and `/versions` are multipart: the prompt as JSON in field `prompt`, an `image` file (PNG, JPEG, or WebP; image prompts only) and an optional spoken version as `audio`. `GET /prompts/next` takes `type`, optional `script`, and repeated `exclude` IDs; it picks a topic at random first, then a prompt within it. Approving a version retires the previously approved version of the same prompt key. Media URLs are signed and expire with `LKD_SIGNED_URL_TTL_SECONDS`. Error codes: `prompt_not_found` (404), `no_prompt_available` (404), `prompt_key_taken` (409), `prompt_not_draft` / `prompt_retired` (409), `image_mismatch` / `prompt_invalid` (422), `image_unsupported` / `audio_unsupported` (422), `image_too_large` / `audio_too_large` (413).
+
 ## 5. Recordings and playback
 
 | Method | Path | Auth | Purpose |
