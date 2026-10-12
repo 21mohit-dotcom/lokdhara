@@ -30,7 +30,7 @@ docs/                 # all planning and design docs (source of truth)
 backend/              # FastAPI app/ (main, config, db, errors, security, cli, worker,
                       #   object_store/ (ObjectStore: local + S3),
                       #   modules/<domain>/{models,schemas,service,router}.py), migrations/, tests/
-frontend/             # Vite React app: src/{pages,components,i18n}
+frontend/             # Vite React app: src/{api,auth,drafts,recording,pages,components,i18n}, e2e/
 infra/                # docker-compose.yml (Caddyfile in M8)
 scripts/              # repository checks used by CI
 .github/workflows/    # CI
@@ -50,6 +50,7 @@ uv run python -m app.cli ping-worker                    # enqueue a no-op job to
 uv run ruff check . && uv run ruff format --check . && uv run mypy app tests && uv run pytest
 cd frontend && npm ci && npm run dev                    # SPA :5173 (proxies /api)
 npm run lint && npm run typecheck && npm test && npm run build && npm run size
+npm run e2e                                             # Playwright flow test (needs the db running)
 bash scripts/check-forbidden-files.sh                   # same check CI runs
 ```
 
