@@ -1,6 +1,7 @@
 """Submission drafts (docs/USER_FLOWS.md F1).
 
 A draft exists on the device first; the server copy is created when the contributor uploads.
+Consent is required before any audio reaches the server.
 """
 
 import uuid
@@ -18,12 +19,19 @@ from app.modules.submissions.models import Recording, Submission, TextLayer, Tex
 from app.modules.submissions.schemas import SubmissionCreateRequest, SubmissionUpdateRequest
 
 EDITABLE_STATUSES = ("draft", "changes_requested")
+AUDIO_KINDS = ("audio", "audio_text")
 MAX_PAGE = 100
 
 
 def _not_found() -> ApiError:
     # Same answer whether the submission does not exist or is not visible to this user.
     return ApiError(404, "submission_not_found", "Submission not found.")
+
+
+def consent_required() -> ApiError:
+    return ApiError(
+        422, "consent_required", "The speaker's consent must be recorded before this step."
+    )
 
 
 # ------------------------------------------------------------------ access
@@ -53,7 +61,7 @@ def get_visible(db: Session, user: AuthenticatedUser, submission_id: uuid.UUID) 
 def get_owned(
     db: Session, user: AuthenticatedUser, submission_id: uuid.UUID, *, for_update: bool = False
 ) -> Submission:
-    """Only the person who created a submission edits it."""
+    """Only the person who created a submission edits it or uploads to it."""
     query = select(Submission).where(Submission.id == submission_id, visible_to(user))
     if for_update:
         query = query.with_for_update()

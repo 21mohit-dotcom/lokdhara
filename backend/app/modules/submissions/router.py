@@ -3,16 +3,17 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Form, Header, Query, UploadFile, status
 
 from app.db import DbSession
-from app.modules.identity.deps import CurrentUser, require_roles
+from app.modules.identity.deps import CurrentUser, SettingsDep, require_roles
 from app.modules.identity.service import AuthenticatedUser
 from app.modules.speakers.service import SELF_SPEAKER_ROLES
-from app.modules.submissions import service
+from app.modules.submissions import service, uploads
 from app.modules.submissions.models import Submission
 from app.modules.submissions.schemas import (
     CollectionContext,
+    DeviceHint,
     RecordingOut,
     RevisionOut,
     SubmissionCreateRequest,
@@ -22,11 +23,14 @@ from app.modules.submissions.schemas import (
     SubmissionStatus,
     SubmissionUpdateRequest,
     TextLayerOut,
+    UploadOut,
 )
+from app.object_store import ObjectStore, get_object_store
 
 router = APIRouter(tags=["submissions"])
 
 Recorder = Annotated[AuthenticatedUser, Depends(require_roles(*SELF_SPEAKER_ROLES))]
+Store = Annotated[ObjectStore, Depends(get_object_store)]
 
 
 def _out(submission: Submission) -> SubmissionOut:
@@ -106,3 +110,30 @@ def update_submission(
 ) -> SubmissionDetailOut:
     submission = service.update_draft(db, user=user, submission_id=submission_id, body=body)
     return _detail(db, submission)
+
+
+@router.post("/submissions/{submission_id}/recordings", status_code=status.HTTP_202_ACCEPTED)
+def upload_recording(
+    submission_id: uuid.UUID,
+    user: Recorder,
+    db: DbSession,
+    settings: SettingsDep,
+    store: Store,
+    file: UploadFile,
+    idempotency_key: Annotated[uuid.UUID, Header(alias="Idempotency-Key")],
+    source: Annotated[DeviceHint | None, Form()] = None,
+) -> UploadOut:
+    """Multipart `file`, plus `source` (`browser_recorder` or `file_upload`). Send the same
+    `Idempotency-Key` with every retry of the same file."""
+    recording = uploads.upload_recording(
+        db,
+        store,
+        settings,
+        user=user,
+        submission_id=submission_id,
+        upload_key=idempotency_key,
+        stream=file.file,
+        filename=file.filename,
+        device_hint=source,
+    )
+    return UploadOut(recording_id=recording.id, upload_status=recording.upload_status)
