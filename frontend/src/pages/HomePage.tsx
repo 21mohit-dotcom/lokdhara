@@ -2,10 +2,14 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 
 import { useSession } from '../auth/session'
+import { useDrafts } from '../drafts/DraftsProvider'
 
 export function HomePage() {
   const { t } = useTranslation()
   const session = useSession()
+  const { drafts } = useDrafts()
+  const waiting = drafts.length
+
   return (
     <section className="home">
       <p className="tagline">{t('home.greeting', { name: session.user.display_name })}</p>
@@ -13,11 +17,11 @@ export function HomePage() {
         <Link to="/contribute" className="action primary">
           <span aria-hidden="true">🎙️</span> {t('home.newRecording')}
         </Link>
-        <button type="button" className="action" disabled>
+        <Link to="/submissions" className="action">
           <span aria-hidden="true">📋</span> {t('home.mySubmissions')}
-        </button>
+          {waiting > 0 && <span className="badge">{t('home.onDevice', { count: waiting })}</span>}
+        </Link>
       </div>
-      <p className="note">{t('home.comingSoon')}</p>
     </section>
   )
 }

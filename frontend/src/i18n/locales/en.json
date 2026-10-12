@@ -12,7 +12,8 @@
     "greeting": "Welcome, {{name}}",
     "newRecording": "New recording",
     "mySubmissions": "My submissions",
-    "comingSoon": "This part of Lokdhara is being built."
+    "onDevice_one": "{{count}} on this phone",
+    "onDevice_other": "{{count}} on this phone"
   },
   "notFound": {
     "title": "Page not found",
@@ -75,10 +76,43 @@
     "ready": "Recording ready. Listen to check it.",
     "listen": "Listen to the recording"
   },
+  "kinds": {
+    "audio": "Audio",
+    "text": "Text",
+    "audio_text": "Audio and text"
+  },
+  "submissions": {
+    "title": "My submissions",
+    "onDevice": "On this phone",
+    "uploading": "Uploading…",
+    "waiting": "Waiting to upload",
+    "unfinished": "Not finished",
+    "continue": "Continue",
+    "discard": "Delete",
+    "discardConfirm": "Delete this draft from the phone? This cannot be undone.",
+    "retry": "Try uploading now",
+    "keptOnDevice": "Drafts stay on this phone until they are uploaded, even without internet.",
+    "sent": "Sent",
+    "none": "Nothing sent yet."
+  },
+  "statuses": {
+    "draft": "Draft",
+    "uploading": "Uploading",
+    "processing": "Being checked",
+    "processing_failed": "Check failed, the team will look at it",
+    "rejected_invalid": "File could not be used",
+    "awaiting_review": "Waiting for review",
+    "in_review": "In review",
+    "changes_requested": "Changes requested",
+    "approved": "Approved",
+    "rejected": "Not accepted",
+    "withdrawn": "Withdrawn"
+  },
   "errors": {
     "generic": "Something went wrong ({{code}}). Please try again.",
     "network_error": "No connection. Your work is saved on this phone and will upload when you are back online.",
     "unexpected_error": "Something went wrong. Please try again.",
+    "draft_not_found": "This draft is no longer on this phone.",
     "invalid_credentials": "The username or password is not right.",
     "login_locked": "Too many attempts. Please wait a little and try again.",
     "not_authenticated": "Please sign in again.",
@@ -91,6 +125,20 @@
     "minors_not_enabled": "Recording people under 18 is not possible yet.",
     "evidence_required": "Please record the spoken consent.",
     "evidence_not_audio": "The consent recording is not an audio file.",
-    "evidence_too_large": "The consent recording is too large."
+    "evidence_too_large": "The consent recording is too large.",
+    "no_prompt_available": "No more prompts of this kind right now.",
+    "prompt_not_found": "This prompt is no longer available.",
+    "prompt_retired": "This prompt is no longer used. Please choose another.",
+    "consent_required": "Consent is needed before uploading.",
+    "bad_signature": "This file is not a supported audio format.",
+    "too_large": "The file is too large.",
+    "upload_rate_limited": "Too many uploads in the last hour. It will try again later.",
+    "recording_exists": "This submission already has its recording.",
+    "recording_missing": "The uploaded recording was lost. Please record again.",
+    "text_empty": "The text is empty.",
+    "text_too_long": "The text is too long for this kind of entry.",
+    "disallowed_character": "The text contains a hidden or unusual character that cannot be saved.",
+    "submission_not_editable": "This submission can no longer be changed.",
+    "validation_failed": "Some details are not valid. Please check them."
   }
 }

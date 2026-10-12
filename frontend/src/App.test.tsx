@@ -30,19 +30,23 @@ describe('app shell and sign-in', () => {
 
   it('explains a failed sign-in, then opens the home page', async () => {
     let attempts = 0
-    fakeServer({
+    const { requests } = fakeServer({
       'GET /auth/me': () => problem(401, 'not_authenticated'),
       'POST /auth/login': () =>
         ++attempts === 1 ? problem(401, 'invalid_credentials') : { body: SESSION },
+      'GET /submissions.*': () => ({ body: { items: [] } }),
     })
-    renderApp('/')
+    renderApp('/submissions')
     await userEvent.type(await screen.findByLabelText('यूज़रनेम'), 'asha')
     await userEvent.type(screen.getByLabelText('पासवर्ड'), 'wrong password')
     await userEvent.click(screen.getByRole('button', { name: 'साइन इन करें' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('यूज़रनेम या पासवर्ड सही नहीं है।')
 
     await userEvent.click(screen.getByRole('button', { name: 'साइन इन करें' }))
-    expect(await screen.findByText('स्वागत है, Asha')).toBeInTheDocument()
+    // Back to the page that asked for sign-in.
+    expect(await screen.findByRole('heading', { name: 'मेरी प्रविष्टियाँ' })).toBeInTheDocument()
+    const listCall = requests.find((r) => r.path.startsWith('/submissions'))
+    expect(listCall?.method).toBe('GET')
   })
 
   it('sends the CSRF token with changes and signs out', async () => {
