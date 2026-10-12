@@ -15,6 +15,8 @@ from app.modules.submissions.schemas import (
     CollectionContext,
     DeviceHint,
     RecordingOut,
+    RevisionCreateRequest,
+    RevisionListOut,
     RevisionOut,
     SubmissionCreateRequest,
     SubmissionDetailOut,
@@ -159,3 +161,19 @@ def create_text_layer(
 @router.get("/text-layers/{layer_id}")
 def get_text_layer(layer_id: uuid.UUID, user: CurrentUser, db: DbSession) -> TextLayerOut:
     return _layer_out(text_layers.get_layer(db, user, layer_id))
+
+
+@router.get("/text-layers/{layer_id}/revisions")
+def list_revisions(layer_id: uuid.UUID, user: CurrentUser, db: DbSession) -> RevisionListOut:
+    """Newest first."""
+    return RevisionListOut(
+        items=[_revision_out(r) for r in text_layers.history(db, user, layer_id)]
+    )
+
+
+@router.post("/text-layers/{layer_id}/revisions", status_code=status.HTTP_201_CREATED)
+def add_revision(
+    layer_id: uuid.UUID, body: RevisionCreateRequest, user: Recorder, db: DbSession
+) -> TextLayerOut:
+    """Returns the layer with its new current revision."""
+    return _layer_out(text_layers.add_revision(db, user=user, layer_id=layer_id, body=body))

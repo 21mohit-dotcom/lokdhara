@@ -56,6 +56,11 @@ def _created(response: Any) -> dict[str, Any]:
     return result
 
 
+def _revise(client: TestClient, layer: dict[str, Any], content: str, **fields: Any) -> Any:
+    body = {"base_revision_id": layer["current_revision"]["id"], "content": content, **fields}
+    return client.post(f"/api/v1/text-layers/{layer['id']}/revisions", json=body)
+
+
 # ------------------------------------------------------------------ storing text
 
 
@@ -172,10 +177,60 @@ def test_translations_translate_text_into_another_language(
     assert translate(english["id"], language="hi").json()["code"] == "layer_link_invalid"
 
 
+# ------------------------------------------------------------------ revisions
+
+
+def test_edits_are_new_revisions_on_top_of_the_one_edited(
+    client: TestClient, text_draft: str, db: Session
+) -> None:
+    first = _created(_layer(client, text_draft))
+    second = _created(_revise(client, first, "यह बदला हुआ वाक्य है।", change_note="typo"))
+    revision = second["current_revision"]
+    assert revision["revision_number"] == 2
+    assert revision["based_on_revision_id"] == first["current_revision"]["id"]
+    assert revision["change_note"] == "typo"
+
+    history = client.get(f"/api/v1/text-layers/{first['id']}/revisions").json()["items"]
+    assert [r["revision_number"] for r in history] == [2, 1]
+    original = db.get(TextRevision, uuid.UUID(first["current_revision"]["id"]))
+    assert original is not None and original.content_original == "यह एक परीक्षण वाक्य है।"
+
+
+def test_an_edit_from_an_old_revision_is_refused(client: TestClient, text_draft: str) -> None:
+    first = _created(_layer(client, text_draft))
+    _created(_revise(client, first, "पहला बदलाव"))
+    stale = _revise(client, first, "दूसरा बदलाव")
+    assert stale.status_code == 409
+    assert stale.json()["code"] == "revision_conflict"
+
+
+def test_translations_show_when_their_source_changed(client: TestClient, text_draft: str) -> None:
+    source = _created(_layer(client, text_draft))
+    english = _created(
+        _layer(
+            client,
+            text_draft,
+            layer_type="translation",
+            entry_type=None,
+            source_layer_id=source["id"],
+            language_tag="en",
+            script_code="Latn",
+            content="A test sentence.",
+        )
+    )
+    _created(_revise(client, source, "यह नया वाक्य है।"))
+    stale = client.get(f"/api/v1/text-layers/{english['id']}").json()
+    assert stale["source_changed"] is True
+    detail = client.get(f"{SUBMISSIONS}/{text_draft}").json()
+    assert [layer["source_changed"] for layer in detail["text_layers"]] == [False, True]
+    refreshed = _created(_revise(client, stale, "A new sentence."))
+    assert refreshed["source_changed"] is False
+
+
 # ------------------------------------------------------------------ who may see and edit
 
 
-def test_only_visible_text_is_shown(
+def test_only_the_owner_edits_and_only_visible_text_is_shown(
     client: TestClient, text_draft: str, make_user: MakeUser
 ) -> None:
     layer = _created(_layer(client, text_draft))
@@ -183,8 +238,11 @@ def test_only_visible_text_is_shown(
 
     act_as(client, make_user("ravi", "contributor"))
     assert client.get(path).json()["code"] == "text_layer_not_found"
+    assert client.get(f"{path}/revisions").status_code == 404
+    assert _revise(client, layer, "x").status_code == 404
     assert _layer(client, text_draft).status_code == 404
 
     act_as(client, make_user("admin", "admin"))
     assert client.get(path).status_code == 200
+    assert _revise(client, layer, "x").json()["code"] == "forbidden"
     assert client.get(f"/api/v1/text-layers/{uuid.uuid4()}").status_code == 404

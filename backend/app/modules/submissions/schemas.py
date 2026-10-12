@@ -142,6 +142,15 @@ class TextLayerCreateRequest(BaseModel):
         return self
 
 
+class RevisionCreateRequest(BaseModel):
+    """`base_revision_id` is the revision the edit started from; if someone saved a newer one
+    in the meantime the edit is refused with 409 instead of silently replacing theirs."""
+
+    base_revision_id: uuid.UUID
+    content: TextContent
+    change_note: SingleLine | None = Field(default=None, max_length=500)
+
+
 class RevisionOut(BaseModel):
     id: uuid.UUID
     revision_number: int
@@ -153,6 +162,10 @@ class RevisionOut(BaseModel):
     verification_status: str
     change_note: str | None
     created_at: datetime
+
+
+class RevisionListOut(BaseModel):
+    items: list[RevisionOut]
 
 
 class TextLayerOut(BaseModel):

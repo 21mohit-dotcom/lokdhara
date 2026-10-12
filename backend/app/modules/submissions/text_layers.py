@@ -7,14 +7,14 @@ and normalisation run later in the `text.derive` job (M4).
 
 import uuid
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.errors import ApiError
 from app.modules.identity.service import AuthenticatedUser, utcnow
 from app.modules.submissions import service
 from app.modules.submissions.models import Recording, Submission, TextLayer, TextRevision
-from app.modules.submissions.schemas import TextLayerCreateRequest
+from app.modules.submissions.schemas import RevisionCreateRequest, TextLayerCreateRequest
 from app.text import markup, normalize, safety
 
 # Which layer types each submission kind takes.
@@ -163,3 +163,48 @@ def _visible_layer(
 
 def get_layer(db: Session, user: AuthenticatedUser, layer_id: uuid.UUID) -> service.LayerView:
     return service.layer_view(db, _visible_layer(db, user, layer_id))
+
+
+def history(db: Session, user: AuthenticatedUser, layer_id: uuid.UUID) -> list[TextRevision]:
+    layer = _visible_layer(db, user, layer_id)
+    return list(
+        db.scalars(
+            select(TextRevision)
+            .where(TextRevision.layer_id == layer.id)
+            .order_by(TextRevision.revision_number.desc())
+        )
+    )
+
+
+def add_revision(
+    db: Session,
+    *,
+    user: AuthenticatedUser,
+    layer_id: uuid.UUID,
+    body: RevisionCreateRequest,
+) -> service.LayerView:
+    """Contributors revise their own text until review starts; reviewer revisions arrive
+    with the review milestone (M6)."""
+    layer = _visible_layer(db, user, layer_id, for_update=True)
+    submission = service.get_owned(db, user, layer.submission_id)
+    _check_editable(submission)
+    if body.base_revision_id != layer.current_revision_id:
+        raise ApiError(
+            409, "revision_conflict", "Someone saved a newer version; reload and try again."
+        )
+    content = _checked(body.content, layer.entry_type)
+    latest = db.scalar(
+        select(func.max(TextRevision.revision_number)).where(TextRevision.layer_id == layer.id)
+    )
+    _new_revision(
+        db,
+        layer,
+        number=(latest or 0) + 1,
+        content=content,
+        author=user.id,
+        based_on=body.base_revision_id,
+        change_note=body.change_note,
+    )
+    submission.updated_at = utcnow()
+    db.commit()
+    return service.layer_view(db, layer)
