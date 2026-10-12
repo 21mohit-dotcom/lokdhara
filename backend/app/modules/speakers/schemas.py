@@ -1,16 +1,13 @@
 import uuid
 from datetime import datetime
-from typing import Annotated, Literal
+from typing import Literal
 
-from pydantic import BaseModel, Field, StringConstraints
+from pydantic import BaseModel, Field
 
+from app.languages import LanguageTag
 from app.text_input import MultiLine, SingleLine
 
 AgeBand = Literal["18-29", "30-44", "45-59", "60+", "under_18", "undisclosed"]
-# BCP 47 language tag, e.g. "unr", "hi", "unr-Deva".
-LanguageTag = Annotated[
-    str, StringConstraints(pattern=r"^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$", max_length=35)
-]
 
 
 class SpeakerCreateRequest(BaseModel):
