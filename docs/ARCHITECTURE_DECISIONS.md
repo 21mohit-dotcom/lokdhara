@@ -2,7 +2,7 @@
 
 Each ADR records a decision, the alternatives, and **the conditions under which we would revisit it**. Status values: *Proposed* (awaiting the project owner's approval), *Accepted*, *Superseded by ADR-NNN*. Never edit an accepted ADR's decision in place; add a new ADR that supersedes it.
 
-ADRs 001–019 were **Accepted** by the project owner on 2026-10-11 (ADR-019 after the Milestone 2 spike).
+ADRs 001–019 were **Accepted** by the project owner on 2026-10-11 (ADR-019 after the Milestone 2 spike), and ADR-020 on 2026-10-12.
 
 | # | Title | Status |
 |---|-------|--------|
@@ -25,7 +25,7 @@ ADRs 001–019 were **Accepted** by the project owner on 2026-10-11 (ADR-019 aft
 | 017 | Repository holds code and documentation only | Accepted |
 | 018 | Three recording modes (free, prompted, read) with a versioned prompt library | Accepted |
 | 019 | In-house PostgreSQL job table instead of Procrastinate (refines ADR-007) | Accepted |
-| 020 | Database triggers enforce column immutability and self-review; schema refinements from Milestone 2 | Proposed |
+| 020 | Database triggers enforce column immutability and self-review; schema refinements from Milestone 2 | Accepted |
 
 ---
 
@@ -153,7 +153,7 @@ ADRs 001–019 were **Accepted** by the project owner on 2026-10-11 (ADR-019 aft
 
 ## ADR-020 — Database triggers enforce column immutability and self-review
 
-- **Status:** Proposed (Milestone 2 domain migrations `0004`–`0007`, 2026-10-12); refines ADR-009, ADR-011, ADR-012.
+- **Status:** Accepted (project owner, 2026-10-12; implemented by migrations `0004`–`0007`); refines ADR-009, ADR-011, ADR-012.
 - **Context:** DATABASE_SCHEMA.md marks several tables 🧊 but also says some of their columns change later (consent status, prompt status, revision verification, recording validation results). A whole-row append-only trigger cannot express that, and leaving it to the services means one bug could rewrite consent or provenance. Writing the migrations also showed gaps in the proposed schema.
 - **Decision:** Two reusable trigger functions, with the same erasure-routine exception as `lkd_reject_change()`:
   - `lkd_guard_columns(mutable…)`: the row is append-only except the listed columns. Used for `consent_forms` (`retired_at`), `consent_records` (`status`), `prompts` (`status`, `approved_by`), `text_revisions` (`verification_status`).
