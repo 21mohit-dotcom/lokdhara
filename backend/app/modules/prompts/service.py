@@ -298,6 +298,22 @@ def ensure_dev_prompts(db: Session, admin_id: uuid.UUID) -> int:
 # ------------------------------------------------------------------ recording (contributors)
 
 
+# Which prompt types each recording mode answers (docs/RECORDING_MODES.md).
+_MODE_TYPES = {"prompted": ("image", "situation"), "read": ("read_sentence",)}
+
+
+def get_for_recording(db: Session, prompt_id: uuid.UUID, recording_mode: str) -> Prompt:
+    """The prompt a new recording answers: approved, and of a type that fits the mode."""
+    prompt = db.get(Prompt, prompt_id)
+    if prompt is None or prompt.status == "draft":
+        raise _not_found()
+    if prompt.status == "retired":
+        raise ApiError(409, "prompt_retired", "This prompt is no longer used.")
+    if prompt.prompt_type not in _MODE_TYPES.get(recording_mode, ()):
+        raise ApiError(422, "prompt_mismatch", "This prompt does not fit the recording mode.")
+    return prompt
+
+
 def get_prompt(db: Session, user: AuthenticatedUser, prompt_id: uuid.UUID) -> Prompt:
     prompt = db.get(Prompt, prompt_id)
     if prompt is None or (prompt.status != "approved" and not user.has_role(*STAFF_ROLES)):
