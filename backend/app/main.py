@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from app.config import get_settings
 from app.errors import install_error_handlers
 from app.health import router as health_router
+from app.modules.consents.router import router as consents_router
 from app.modules.identity.router import router as identity_router
 from app.modules.processing.router import router as processing_router
 from app.modules.speakers.router import router as speakers_router
@@ -29,6 +30,7 @@ def create_app() -> FastAPI:
     app.include_router(identity_router, prefix=API_PREFIX)
     app.include_router(processing_router, prefix=API_PREFIX)
     app.include_router(speakers_router, prefix=API_PREFIX)
+    app.include_router(consents_router, prefix=API_PREFIX)
     if settings.storage_backend == "local" and settings.is_local:
         app.include_router(local_storage_router, prefix=API_PREFIX)
     return app

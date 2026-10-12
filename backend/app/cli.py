@@ -1,7 +1,7 @@
 """Operator commands.
 
     uv run python -m app.cli create-admin --username asha --display-name "Asha"
-    uv run python -m app.cli seed-dev          # synthetic users; development/test only
+    uv run python -m app.cli seed-dev          # synthetic users and test consent forms; dev only
     uv run python -m app.cli ping-worker       # enqueue a no-op job to check the worker
 
 Accounts are invite-only (ADR-008); create-admin exists to bootstrap the first administrator.
@@ -19,6 +19,7 @@ from app.config import get_settings
 from app.db import get_engine
 from app.errors import ApiError
 from app.modules.audit import service as audit
+from app.modules.consents import service as consents
 from app.modules.identity import service
 from app.modules.identity.models import ROLES, User, UserRole
 from app.modules.processing.queue import enqueue
@@ -89,11 +90,14 @@ def seed_dev() -> int:
             password = new_token()[:20]
             _create(db, username, display_name, password, roles)
             created.append((username, password))
+        forms = consents.ensure_dev_forms(db)
         db.commit()
     if not created:
         print("Development users already exist.")
     for username, password in created:
         print(f"{username:16} {password}")
+    if forms:
+        print(f"Added test consent forms: {', '.join(forms)} (not for real data).")
     return 0
 
 
@@ -112,7 +116,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     admin.add_argument("--username", required=True)
     admin.add_argument("--display-name", required=True)
     admin.add_argument("--password-stdin", action="store_true", help="read password from stdin")
-    commands.add_parser("seed-dev", help=f"create synthetic users ({', '.join(ROLES)})")
+    commands.add_parser(
+        "seed-dev", help=f"create synthetic users ({', '.join(ROLES)}) and test consent forms"
+    )
     commands.add_parser("ping-worker", help="enqueue a no-op job to check the worker")
     args = parser.parse_args(argv)
     if args.command == "create-admin":
