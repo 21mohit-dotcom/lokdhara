@@ -159,7 +159,7 @@ def test_handler_writes_roll_back_on_failure(
 
 
 def test_job_without_handler_fails(engine: Engine, db: Session) -> None:
-    job_id = enqueue(db, "cleanup.quarantine")
+    job_id = enqueue(db, "dataset.export")
     db.commit()
     process_one(engine, "w1", LEASE)
     job = _job(db, job_id)
@@ -222,7 +222,7 @@ def test_unknown_job_types_are_rejected(db: Session) -> None:
 def test_admin_lists_and_retries_failed_jobs(
     client: TestClient, make_user: MakeUser, engine: Engine, db: Session
 ) -> None:
-    job_id = enqueue(db, "cleanup.quarantine")  # no handler yet, so it fails
+    job_id = enqueue(db, "dataset.export")  # no handler yet, so it fails
     db.commit()
     process_one(engine, "w1", LEASE)
     headers = {"X-CSRF-Token": login(client, make_user("admin1", "admin"))}

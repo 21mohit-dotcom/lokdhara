@@ -1,6 +1,7 @@
-"""Job handlers. Audio and text handlers arrive with Milestone 4."""
+"""Job handlers. Importing this module registers every handler with the queue."""
 
 from app.modules.processing.queue import JobContext, JobResult, handler
+from app.modules.submissions import processing  # noqa: F401 - audio.validate, cleanup.quarantine
 
 
 @handler("system.ping")
