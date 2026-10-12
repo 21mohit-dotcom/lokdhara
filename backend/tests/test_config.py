@@ -1,6 +1,11 @@
+import base64
+import os
+
 import pytest
 
 from app.config import Settings
+
+IDENTITY_KEY = base64.b64encode(os.urandom(32)).decode()
 
 
 def test_settings_read_lkd_prefixed_environment(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -21,8 +26,24 @@ def test_production_rejects_placeholder_secret() -> None:
         Settings(_env_file=None, env="production")
 
 
+def test_production_requires_an_identity_encryption_key() -> None:
+    with pytest.raises(ValueError, match="LKD_IDENTITY_ENCRYPTION_KEY"):
+        Settings(_env_file=None, env="production", secret_key="x" * 40)
+
+
+@pytest.mark.parametrize("bad_key", ["not base64!", base64.b64encode(b"short").decode()])
+def test_identity_key_must_be_32_base64_bytes(bad_key: str) -> None:
+    with pytest.raises(ValueError, match="LKD_IDENTITY_ENCRYPTION_KEY"):
+        Settings(_env_file=None, identity_encryption_key=bad_key)
+
+
 def test_production_accepts_long_random_secret_and_secure_cookies() -> None:
-    settings = Settings(_env_file=None, env="production", secret_key="x" * 40)
+    settings = Settings(
+        _env_file=None,
+        env="production",
+        secret_key="x" * 40,
+        identity_encryption_key=IDENTITY_KEY,
+    )
     assert settings.cookie_secure
     assert not Settings(_env_file=None, env="development").cookie_secure
 

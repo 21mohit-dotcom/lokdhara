@@ -1,3 +1,4 @@
+import base64
 import io
 
 import pytest
@@ -11,7 +12,12 @@ from tests.conftest import requires_postgres
 
 
 def test_seed_dev_refuses_outside_local_environments(monkeypatch: pytest.MonkeyPatch) -> None:
-    production = Settings(_env_file=None, env="production", secret_key="x" * 40)
+    production = Settings(
+        _env_file=None,
+        env="production",
+        secret_key="x" * 40,
+        identity_encryption_key=base64.b64encode(bytes(32)).decode(),
+    )
     monkeypatch.setattr(cli, "get_settings", lambda: production)
     assert cli.main(["seed-dev"]) == 1
 
