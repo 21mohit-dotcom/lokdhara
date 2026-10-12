@@ -65,7 +65,7 @@ Docs: [Vite](https://vite.dev/guide/), [React](https://react.dev/), [MediaRecord
 
 **Django was the closest alternative.** Its admin site would save effort on admin screens. We chose FastAPI because the API-first SPA design, explicit SQLAlchemy models, and Alembic migrations give clearer control over immutable/versioned tables, and the admin screens Lokdhara needs (withdrawals, jobs, consent forms) are workflow-specific anyway. **Change to Django if** the team finds itself rebuilding generic CRUD admin screens repeatedly by M6.
 
-Supporting libraries: SQLAlchemy 2.x (ORM + Core), Alembic (migrations), Pydantic v2 + pydantic-settings, psycopg 3, argon2-cffi, boto3 (S3 API), `regex` (Unicode script properties), uv (dependency management), ruff (lint/format), mypy, pytest + httpx.
+Supporting libraries: SQLAlchemy 2.x (ORM + Core), Alembic (migrations), Pydantic v2 + pydantic-settings, psycopg 3, argon2-cffi, `cryptography` (AES-GCM for speaker identity fields), python-multipart (uploads), boto3 (S3 API), `regex` (Unicode script properties), uv (dependency management), ruff (lint/format), mypy, pytest + httpx.
 
 Docs: [FastAPI](https://fastapi.tiangolo.com/), [SQLAlchemy 2.0](https://docs.sqlalchemy.org/en/20/), [Alembic](https://alembic.sqlalchemy.org/), [Pydantic](https://docs.pydantic.dev/).
 

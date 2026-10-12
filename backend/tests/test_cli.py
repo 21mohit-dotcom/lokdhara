@@ -1,3 +1,4 @@
+import base64
 import io
 
 import pytest
@@ -11,7 +12,12 @@ from tests.conftest import requires_postgres
 
 
 def test_seed_dev_refuses_outside_local_environments(monkeypatch: pytest.MonkeyPatch) -> None:
-    production = Settings(_env_file=None, env="production", secret_key="x" * 40)
+    production = Settings(
+        _env_file=None,
+        env="production",
+        secret_key="x" * 40,
+        identity_encryption_key=base64.b64encode(bytes(32)).decode(),
+    )
     monkeypatch.setattr(cli, "get_settings", lambda: production)
     assert cli.main(["seed-dev"]) == 1
 
@@ -40,6 +46,22 @@ def test_seed_dev_creates_one_account_per_role_once(
     assert "already exist" in capsys.readouterr().out
     roles = set(db.scalars(select(UserRole.role)))
     assert roles == {"admin", "reviewer", "facilitator", "contributor", "researcher"}
+
+
+@requires_postgres
+def test_seed_dev_adds_test_consent_forms_once(
+    monkeypatch: pytest.MonkeyPatch, engine: Engine, db: Session, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from app.modules.consents.models import ConsentForm
+
+    monkeypatch.setattr(cli, "get_engine", lambda: engine)
+    monkeypatch.setattr(cli, "get_settings", lambda: Settings(_env_file=None, env="development"))
+    assert cli.main(["seed-dev"]) == 0
+    assert "not for real data" in capsys.readouterr().out
+    assert cli.main(["seed-dev"]) == 0
+    forms = list(db.scalars(select(ConsentForm)))
+    assert sorted(f.language for f in forms) == ["en", "hi"]
+    assert all(f.is_test_form for f in forms)
 
 
 @requires_postgres

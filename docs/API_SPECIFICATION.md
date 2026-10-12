@@ -43,19 +43,20 @@ Implemented in Milestone 2. Error codes: `invalid_credentials` (401, same respon
 
 | Method | Path | Auth | Purpose |
 |--------|------|------|---------|
-| POST | `/speakers` | contributor (self) / facilitator | Create speaker; returns `speaker_code` |
-| GET | `/speakers?mine=true` | contributor/facilitator | Speakers created by me |
-| GET | `/speakers/{id}` | owner/facilitator/admin | Pseudonymous profile |
+| POST | `/speakers` | contributor (self) / facilitator 🔒 | `{for_self, dialect_label?}`; create speaker; returns `speaker_code` |
+| GET | `/speakers?mine=true` | contributor/facilitator | Speakers created by me or that are me (`mine=false`: admins see all) |
+| GET | `/speakers/{id}` | owner/facilitator/admin | Pseudonymous profile, incl. `has_active_consent` |
+| PATCH | `/speakers/{id}` | owner/facilitator (creator)/admin 🔒 | Dialect; demographics only with demographics consent |
 | PUT | `/speakers/{id}/identity` | facilitator (creator)/admin 🔒 | Set restricted identity details |
 | GET | `/speakers/{id}/identity` | facilitator (creator)/admin 🔒 | Read restricted identity |
 | GET | `/consent-forms/current?language=hi` | any | Current form text + version |
-| POST | `/speakers/{id}/consents` | facilitator/self 🔒 | Create consent record (multipart if `oral_recorded` evidence) |
+| POST | `/speakers/{id}/consents` | facilitator (creator)/self/admin 🔒 | Multipart: answers as JSON in field `consent`; `evidence` audio file for `oral_recorded`. Supersedes the active record |
 | GET | `/speakers/{id}/consents` | owner/facilitator/admin | History |
 | POST | `/withdrawal-requests` | any (self) / facilitator / admin 🔒 | Log request |
 | GET | `/admin/withdrawal-requests` | admin | Queue |
 | POST | `/admin/withdrawal-requests/{id}/verify` · `/complete` | admin 🔒 | Process |
 
-Consent create body (example):
+Consent answers, sent as the JSON value of the `consent` form field (example):
 
 ```json
 {
@@ -72,6 +73,8 @@ Consent create body (example):
   "applies_to_past_contributions": false
 }
 ```
+
+Speakers and consent (except withdrawal requests, which come with the withdrawal workflow) are implemented in Milestone 3. Error codes: `speaker_not_found` (404, also when the speaker exists but is not yours), `self_speaker_exists` (409), `speaker_withdrawn` (409), `demographics_not_consented` (422), `minors_not_enabled` (422, until Q-L4), `consent_form_not_found` (404), `consent_form_invalid` / `test_form_not_allowed` (422), `store_consent_required` (422), `evidence_required` / `evidence_not_expected` / `evidence_not_audio` (422), `evidence_too_large` (413). Responses never include identity values except from the identity endpoints, nor the consent evidence key or paper reference.
 
 ## 4. Submissions
 

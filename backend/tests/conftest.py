@@ -22,6 +22,7 @@ from app.db import get_engine
 from app.main import create_app
 from app.modules.identity import service
 from app.modules.identity.models import UserRole
+from app.object_store import Bucket, LocalObjectStore, ObjectStore, get_object_store
 
 TEST_DATABASE_URL = os.environ.get("LKD_TEST_DATABASE_URL")
 BACKEND_DIR = Path(__file__).resolve().parent.parent
@@ -91,10 +92,19 @@ def settings() -> Settings:
 
 
 @pytest.fixture
-def client(engine: Engine, settings: Settings) -> Iterator[TestClient]:
+def object_store(tmp_path: Path, settings: Settings) -> ObjectStore:
+    names = {bucket: f"test-{bucket.value.replace('_', '-')}" for bucket in Bucket}
+    return LocalObjectStore(
+        tmp_path / "objects", names, "http://testserver", settings.secret_key.get_secret_value()
+    )
+
+
+@pytest.fixture
+def client(engine: Engine, settings: Settings, object_store: ObjectStore) -> Iterator[TestClient]:
     app = create_app()
     app.dependency_overrides[get_engine] = lambda: engine
     app.dependency_overrides[get_settings] = lambda: settings
+    app.dependency_overrides[get_object_store] = lambda: object_store
     with TestClient(app) as test_client:
         yield test_client
 
@@ -129,3 +139,9 @@ def login(client: TestClient, user: TestUser) -> str:
     )
     assert response.status_code == 200, response.text
     return str(response.json()["csrf_token"])
+
+
+def act_as(client: TestClient, user: TestUser) -> None:
+    """Signs in as `user` and sends their CSRF token with every later request."""
+    client.cookies.clear()
+    client.headers["X-CSRF-Token"] = login(client, user)

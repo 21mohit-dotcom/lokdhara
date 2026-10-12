@@ -1,6 +1,6 @@
 # Implementation Roadmap
 
-Status: **Approved by Ayush Soni (project owner) on 2026-10-11.** M0, M1, and M2 complete (M2 on 2026-10-12); M3 starts on the owner's go-ahead. The **Blocks pilot** questions must still be answered before any real data is collected.
+Status: **Approved by Ayush Soni (project owner) on 2026-10-11.** M0, M1, and M2 complete (M2 on 2026-10-12); M3 in progress. The **Blocks pilot** questions must still be answered before any real data is collected.
 
 ## Approach
 
@@ -13,7 +13,8 @@ flowchart LR
     M0[M0 Planning] --> M1[M1 Skeleton]
     M1 --> M2[M2 DB + storage]
     M2 --> M3[M3 Submission flow]
-    M3 --> M4[M4 Validation pipeline]
+    M3 --> L3[Load test]
+    L3 --> M4[M4 Validation pipeline]
     M4 --> M5[M5 Transcripts + translations]
     M5 --> M6[M6 Review workflow]
     M6 --> M7[M7 Datasets + export]
@@ -48,13 +49,20 @@ flowchart LR
 - **Tests:** migration up/down/up; trigger tests; auth tests (rate limit, session revoke, CSRF); storage contract tests; audit event written for role change.
 - **Before moving on:** schema reviewed against [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md); deviations recorded as ADRs.
 
-## M3 — Contributor submission workflow (vertical slice)
+## M3 — Contributor submission workflow (vertical slice) *(in progress: speaker and consent API done)*
 
 - **Deliverables:** speaker creation (self + facilitator); consent capture (in-app + oral recording evidence + paper reference) against a seeded **test** consent form; submission draft; recording-mode choice (free / prompted / read) with a seeded **test** prompt library and admin prompt management (see RECORDING_MODES.md); in-browser recording + file selection; IndexedDB drafts with retry; upload into quarantine; "my submissions" page; Hindi/English UI.
 - **Dependencies:** M2; answers to Q-G2, Q-G4, Q-G7, Q-X1, Q-X5, Q-X6 (provisional answers acceptable for development), Q-P1 user sessions recommended.
 - **Acceptance criteria:** on a throttled "Slow 3G" profile and a real Android phone, a user can record, lose connection, recover, and upload without losing audio; no submission leaves draft without consent; contributor bundle ≤ 250 KB compressed (or documented deviation).
 - **Tests:** upload security suite (part), consent gating, idempotency, Playwright happy path with fake media stream.
 - **Before moving on:** usability notes from at least 2 test users (team members acting as contributors is acceptable at this stage).
+
+## Load test of the submission flow (after M3, requested by the owner on 2026-10-12)
+
+- **Deliverables:** a [Locust](https://locust.io/) script in `backend/loadtest/` (development dependency only; it sends nothing outside the machine) that simulates about 50 contributors signing in, creating drafts, and uploading **synthetic, generated** audio; a reviewer browsing scenario is added once the M6 review queue exists. Results go in a short `docs/LOAD_TESTING.md`: requests per second, slowest responses, and the point where the worker queue falls behind.
+- **Dependencies:** M3 (uploads into quarantine); `seed-dev` synthetic users.
+- **How it runs:** against the local Docker Compose stack with synthetic data only, never against staging or production with real data.
+- **Acceptance criteria:** the script runs from a fresh clone with one command; results and the machine they ran on are recorded; any bottleneck found becomes an issue or an ADR before M8.
 
 ## M4 — Audio and text validation pipeline
 

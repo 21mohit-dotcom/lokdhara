@@ -3,6 +3,8 @@
 This is the only module that reads configuration; other code receives a Settings object.
 """
 
+import base64
+import binascii
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
@@ -53,6 +55,15 @@ class Settings(BaseSettings):
     bucket_exports: str = "lokdhara-exports"
     signed_url_ttl_seconds: int = Field(default=600, gt=0, le=600)
 
+    # Restricted speaker identity fields (AES-256-GCM). 32 random bytes, base64-encoded.
+    # In development and test a key is derived from LKD_SECRET_KEY when this is empty.
+    identity_encryption_key: SecretStr | None = None
+
+    # Consent capture (docs/CONSENT_AND_DATA_GOVERNANCE.md §3)
+    consent_evidence_max_bytes: int = Field(default=25 * 1024 * 1024, gt=0)
+    # No minors in the pilot until Q-L4 is answered; the schema already supports guardians.
+    allow_minors: bool = False
+
     # Login throttling
     login_max_failures: int = Field(default=5, gt=0)
     login_max_failures_per_ip: int = Field(default=20, gt=0)
@@ -77,7 +88,23 @@ class Settings(BaseSettings):
         secret = self.secret_key.get_secret_value()
         if not self.is_local and (secret == LOCAL_ONLY_SECRET or len(secret) < 32):
             raise ValueError("LKD_SECRET_KEY must be a random value of at least 32 characters")
+        if not self.is_local and self.identity_encryption_key is None:
+            raise ValueError("LKD_IDENTITY_ENCRYPTION_KEY is required outside development and test")
+        if self.identity_encryption_key is not None:
+            self.identity_key_bytes()  # fail at startup, not on the first identity write
         return self
+
+    def identity_key_bytes(self) -> bytes | None:
+        """The 32-byte identity key, or None when it should be derived (development and test)."""
+        if self.identity_encryption_key is None:
+            return None
+        try:
+            key = base64.b64decode(self.identity_encryption_key.get_secret_value(), validate=True)
+        except binascii.Error as exc:
+            raise ValueError("LKD_IDENTITY_ENCRYPTION_KEY must be base64") from exc
+        if len(key) != 32:
+            raise ValueError("LKD_IDENTITY_ENCRYPTION_KEY must decode to 32 bytes")
+        return key
 
 
 @lru_cache
