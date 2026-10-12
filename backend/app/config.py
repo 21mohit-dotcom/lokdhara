@@ -64,6 +64,10 @@ class Settings(BaseSettings):
     # No minors in the pilot until Q-L4 is answered; the schema already supports guardians.
     allow_minors: bool = False
 
+    # Prompt library media made by the team (docs/RECORDING_MODES.md)
+    prompt_image_max_bytes: int = Field(default=5 * 1024 * 1024, gt=0)
+    prompt_audio_max_bytes: int = Field(default=10 * 1024 * 1024, gt=0)
+
     # Login throttling
     login_max_failures: int = Field(default=5, gt=0)
     login_max_failures_per_ip: int = Field(default=20, gt=0)

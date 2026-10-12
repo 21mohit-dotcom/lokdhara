@@ -233,7 +233,7 @@ Search indexes: GIN `to_tsvector('simple', content_nfc)`, GIN `content_nfc gin_t
 | prompt_audio_object_key | text NULL | Optional spoken version for non-literate speakers. |
 | source_and_licence | text NOT NULL | Who made it and under what licence. |
 | topic_tags 🔎 | text[] | Controlled list (Q-X5). |
-| status 🔎 | text CHECK IN ('draft','approved','retired') | Only `status` and `approved_by` change after insert; approved or retired prompts need `approved_by`. |
+| status 🔎 | text CHECK IN ('draft','approved','retired') | Only `status` and `approved_by` change after insert; approved or retired prompts need `approved_by` (for a draft retired without approval, the admin who retired it). At most one approved version per `prompt_key`: approving a new version retires the old one. |
 | approved_by | uuid FK users NULL | |
 | created_by, created_at | | |
 

@@ -1,1 +1,1 @@
-"""Submissions, prompts, recordings, renditions, and text layers with revisions."""
+"""Submissions, recordings, renditions, and text layers with revisions."""

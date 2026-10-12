@@ -4,10 +4,9 @@ import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Form, Query, UploadFile, status
-from fastapi.exceptions import RequestValidationError
-from pydantic import ValidationError
 
 from app.db import DbSession
+from app.forms import parse_json_field
 from app.modules.consents import service
 from app.modules.consents.models import ConsentRecord
 from app.modules.consents.schemas import (
@@ -54,12 +53,7 @@ def record_consent(
 ) -> ConsentOut:
     """Multipart: the answers as JSON in `consent`; oral consent adds the recording as
     `evidence`."""
-    try:
-        body = ConsentRequest.model_validate_json(consent)
-    except ValidationError as exc:
-        raise RequestValidationError(
-            [{**error, "loc": ("body", "consent", *error["loc"])} for error in exc.errors()]
-        ) from exc
+    body = parse_json_field(ConsentRequest, consent, "consent")
     record = service.record_consent(
         db,
         store,
