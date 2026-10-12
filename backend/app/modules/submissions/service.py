@@ -5,8 +5,8 @@ Consent is required before any audio reaches the server and again at submit, whe
 consent record is attached (the database refuses to let a submission leave draft without one).
 """
 
-import unicodedata
 import uuid
+from dataclasses import dataclass
 
 from sqlalchemy import ColumnElement, and_, or_, select, true
 from sqlalchemy.exc import IntegrityError
@@ -22,6 +22,7 @@ from app.modules.speakers.models import Speaker
 from app.modules.submissions.models import Recording, Submission, TextLayer, TextRevision
 from app.modules.submissions.schemas import SubmissionCreateRequest, SubmissionUpdateRequest
 from app.object_store import Bucket, ObjectStore
+from app.text.normalize import to_nfc
 
 EDITABLE_STATUSES = ("draft", "changes_requested")
 AUDIO_KINDS = ("audio", "audio_text")
@@ -190,18 +191,51 @@ def recordings_of(db: Session, submission_id: uuid.UUID) -> list[Recording]:
     )
 
 
-def text_layers_of(
-    db: Session, submission_id: uuid.UUID
-) -> list[tuple[TextLayer, TextRevision | None]]:
-    return [
-        (layer, revision)
-        for layer, revision in db.execute(
+@dataclass(frozen=True)
+class LayerView:
+    layer: TextLayer
+    current: TextRevision | None
+    source_changed: bool
+
+
+def _source_changed(current: TextRevision | None, source_current: uuid.UUID | None) -> bool:
+    """A translation is stale when its source got a revision after the one it translated."""
+    return current is not None and current.source_revision_id not in (None, source_current)
+
+
+def text_layers_of(db: Session, submission_id: uuid.UUID) -> list[LayerView]:
+    rows = list(
+        db.execute(
             select(TextLayer, TextRevision)
             .outerjoin(TextRevision, TextRevision.id == TextLayer.current_revision_id)
             .where(TextLayer.submission_id == submission_id)
             .order_by(TextLayer.created_at)
         )
+    )
+    # Translations always translate a layer of the same submission.
+    current_of = {layer.id: layer.current_revision_id for layer, _ in rows}
+    return [
+        LayerView(
+            layer,
+            current,
+            layer.source_layer_id is not None
+            and _source_changed(current, current_of.get(layer.source_layer_id)),
+        )
+        for layer, current in rows
     ]
+
+
+def layer_view(db: Session, layer: TextLayer) -> LayerView:
+    current = None
+    if layer.current_revision_id is not None:
+        current = db.get(TextRevision, layer.current_revision_id)
+    source_changed = False
+    if layer.source_layer_id is not None:
+        source_current = db.scalar(
+            select(TextLayer.current_revision_id).where(TextLayer.id == layer.source_layer_id)
+        )
+        source_changed = _source_changed(current, source_current)
+    return LayerView(layer, current, source_changed)
 
 
 # ------------------------------------------------------------------ submit
@@ -227,7 +261,7 @@ def submit(
             raise ApiError(
                 409, "recording_missing", "The uploaded recording is no longer available."
             )
-    has_text = any(revision for _, revision in text_layers_of(db, submission.id))
+    has_text = any(view.current for view in text_layers_of(db, submission.id))
     if submission.kind in TEXT_KINDS and not has_text:
         raise ApiError(422, "text_required", "Add the text before submitting.")
 
@@ -284,7 +318,7 @@ def _add_prompt_text(db: Session, submission: Submission, recording: Recording) 
         layer_id=layer.id,
         revision_number=1,
         content_original=prompt.text,
-        content_nfc=unicodedata.normalize("NFC", prompt.text),
+        content_nfc=to_nfc(prompt.text),
         origin="prompt_text",
     )
     db.add(revision)

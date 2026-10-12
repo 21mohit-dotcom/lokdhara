@@ -9,8 +9,8 @@ from app.db import DbSession
 from app.modules.identity.deps import CurrentUser, SettingsDep, require_roles
 from app.modules.identity.service import AuthenticatedUser
 from app.modules.speakers.service import SELF_SPEAKER_ROLES
-from app.modules.submissions import service, uploads
-from app.modules.submissions.models import Submission
+from app.modules.submissions import service, text_layers, uploads
+from app.modules.submissions.models import Submission, TextRevision
 from app.modules.submissions.schemas import (
     CollectionContext,
     DeviceHint,
@@ -22,6 +22,7 @@ from app.modules.submissions.schemas import (
     SubmissionOut,
     SubmissionStatus,
     SubmissionUpdateRequest,
+    TextLayerCreateRequest,
     TextLayerOut,
     UploadOut,
 )
@@ -43,29 +44,29 @@ def _out(submission: Submission) -> SubmissionOut:
     )
 
 
+def _revision_out(revision: TextRevision) -> RevisionOut:
+    computed = {"content"}
+    fields = {f: getattr(revision, f) for f in RevisionOut.model_fields if f not in computed}
+    # Always the text exactly as written; derived forms stay internal for now.
+    return RevisionOut(**fields, content=revision.content_original)
+
+
+def _layer_out(view: service.LayerView) -> TextLayerOut:
+    computed = {"current_revision", "source_changed"}
+    fields = {f: getattr(view.layer, f) for f in TextLayerOut.model_fields if f not in computed}
+    return TextLayerOut(
+        **fields,
+        current_revision=_revision_out(view.current) if view.current else None,
+        source_changed=view.source_changed,
+    )
+
+
 def _detail(db: DbSession, submission: Submission) -> SubmissionDetailOut:
     recordings = [
         RecordingOut.model_validate(r, from_attributes=True)
         for r in service.recordings_of(db, submission.id)
     ]
-    layers = [
-        TextLayerOut(
-            **{f: getattr(layer, f) for f in TextLayerOut.model_fields if f != "current_revision"},
-            current_revision=(
-                RevisionOut(
-                    id=revision.id,
-                    revision_number=revision.revision_number,
-                    content=revision.content_original,
-                    origin=revision.origin,
-                    verification_status=revision.verification_status,
-                    created_at=revision.created_at,
-                )
-                if revision
-                else None
-            ),
-        )
-        for layer, revision in service.text_layers_of(db, submission.id)
-    ]
+    layers = [_layer_out(view) for view in service.text_layers_of(db, submission.id)]
     return SubmissionDetailOut(
         **_out(submission).model_dump(), recordings=recordings, text_layers=layers
     )
@@ -145,3 +146,16 @@ def submit_submission(
 ) -> SubmissionDetailOut:
     submission = service.submit(db, store, user=user, submission_id=submission_id)
     return _detail(db, submission)
+
+
+@router.post("/submissions/{submission_id}/text-layers", status_code=status.HTTP_201_CREATED)
+def create_text_layer(
+    submission_id: uuid.UUID, body: TextLayerCreateRequest, user: Recorder, db: DbSession
+) -> TextLayerOut:
+    view = text_layers.create_layer(db, user=user, submission_id=submission_id, body=body)
+    return _layer_out(view)
+
+
+@router.get("/text-layers/{layer_id}")
+def get_text_layer(layer_id: uuid.UUID, user: CurrentUser, db: DbSession) -> TextLayerOut:
+    return _layer_out(text_layers.get_layer(db, user, layer_id))
