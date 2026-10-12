@@ -1,4 +1,4 @@
-"""docs/DATABASE_SCHEMA.md §3. Created by migrations 0005 and 0006.
+"""docs/DATABASE_SCHEMA.md §3. Created by migrations 0005 and 0006; 0009 adds upload keys.
 
 Prompts, also created by 0005, are in app.modules.prompts.
 """
@@ -110,6 +110,8 @@ class Recording(Base):
     quality_metrics: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
     quality_flags: Mapped[list[str]] = mapped_column(ARRAY(Text), server_default="{}")
     recorded_device_hint: Mapped[str | None] = mapped_column(Text)
+    # The Idempotency-Key of the upload that created it (migration 0009).
+    upload_key: Mapped[uuid.UUID | None] = mapped_column(Uuid)
     created_at: Mapped[datetime] = now_default()
 
 

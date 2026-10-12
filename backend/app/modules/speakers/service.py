@@ -7,7 +7,7 @@ in speaker_identities, readable only by the creating facilitator and admins (aud
 import secrets
 import uuid
 
-from sqlalchemy import or_, select
+from sqlalchemy import Select, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -58,6 +58,11 @@ def can_manage_identity(user: AuthenticatedUser, speaker: Speaker) -> bool:
     return user.has_role("admin") or (
         speaker.created_by == user.id and user.has_role("facilitator")
     )
+
+
+def created_by(user_id: uuid.UUID) -> Select[uuid.UUID]:
+    """IDs of the speakers this user created, for other modules' access queries."""
+    return select(Speaker.id).where(Speaker.created_by == user_id)
 
 
 def _not_found() -> ApiError:

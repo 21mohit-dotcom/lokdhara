@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, Form, Query, UploadFile, status
 
 from app.db import DbSession
 from app.forms import parse_json_field
+from app.languages import Script
 from app.modules.identity.deps import Context, SettingsDep, require_roles
 from app.modules.identity.service import AuthenticatedUser
 from app.modules.prompts import service
@@ -19,7 +20,6 @@ from app.modules.prompts.schemas import (
     PromptStatus,
     PromptType,
     PromptVersionRequest,
-    Script,
 )
 from app.modules.speakers.service import SELF_SPEAKER_ROLES
 from app.object_store import ObjectStore, get_object_store

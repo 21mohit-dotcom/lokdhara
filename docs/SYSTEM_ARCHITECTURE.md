@@ -78,9 +78,10 @@ infra/
 ### 4.1 Upload
 
 1. SPA sends `POST /api/v1/submissions/{id}/recordings` (multipart) with an `Idempotency-Key`.
-2. API checks session, role, ownership, consent attached, request size; streams bytes to `quarantine/` while computing SHA-256 and checking the leading bytes against allowed signatures.
-3. API creates a `recordings` row (`upload_status = quarantined`) and enqueues `audio.validate` in the same transaction.
-4. Worker runs ffprobe + full decode; on success copies to `originals/` (write-once), computes metrics, creates renditions, sets `awaiting_review`; on failure marks `rejected_invalid` with a reason and deletes the quarantine object after the retention window.
+2. API checks session, role, ownership, the speaker's active consent, and the per-user upload rate; checks the leading bytes against allowed signatures; streams bytes to `quarantine/` while counting them and computing SHA-256. The key (`{yyyy}/{mm}/{recording_id}/original.{ext}`) is chosen here and reused in `originals/`, so `original_object_key` never changes.
+3. API creates a `recordings` row (`upload_status = quarantined`); if the row cannot be written, the quarantine object is deleted again.
+4. The SPA then calls `POST /submissions/{id}/submit`, which attaches the consent record, sets `processing`, and enqueues `audio.validate` in the same transaction. Drafts are never processed.
+5. Worker runs ffprobe + full decode; on success copies to `originals/` (write-once), computes metrics, creates renditions, sets `awaiting_review`; on failure marks `rejected_invalid` with a reason and deletes the quarantine object after the retention window.
 
 ### 4.2 Playback
 

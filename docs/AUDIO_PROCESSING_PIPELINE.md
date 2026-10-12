@@ -95,7 +95,7 @@ Any stderr output at `error` level → `corrupt_audio`. This also catches trunca
 
 ### 3.4 Promotion
 
-Copy quarantine object → `originals/{yyyy}/{mm}/{recording_id}/original.{ext}`; re-hash the stored object; on match, set `upload_status = promoted` in the same transaction that inserts the `processing_runs` result. Object keys never contain names or client filenames.
+Copy quarantine object → `originals/{yyyy}/{mm}/{recording_id}/original.{ext}` (the API stores the upload under the same key in quarantine, so `recordings.original_object_key` is set once at upload); re-hash the stored object; on match, set `upload_status = promoted` in the same transaction that inserts the `processing_runs` result. Object keys never contain names or client filenames.
 
 ### 3.5 Analysis (`audio.analyze`)
 

@@ -55,6 +55,10 @@ class Settings(BaseSettings):
     bucket_exports: str = "lokdhara-exports"
     signed_url_ttl_seconds: int = Field(default=600, gt=0, le=600)
 
+    # Recording uploads (docs/AUDIO_PROCESSING_PIPELINE.md §2)
+    max_upload_bytes: int = Field(default=100 * 1024 * 1024, gt=0)
+    uploads_per_user_per_hour: int = Field(default=60, gt=0)
+
     # Restricted speaker identity fields (AES-256-GCM). 32 random bytes, base64-encoded.
     # In development and test a key is derived from LKD_SECRET_KEY when this is empty.
     identity_encryption_key: SecretStr | None = None

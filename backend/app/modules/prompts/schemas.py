@@ -4,14 +4,11 @@ from typing import Annotated, Literal, Self
 
 from pydantic import BaseModel, Field, StringConstraints, model_validator
 
+from app.languages import LanguageTag, Script
 from app.text_input import MultiLine, SingleLine
 
 PromptType = Literal["image", "situation", "read_sentence"]
-Script = Literal["Deva", "Latn", "Nagm", "Beng", "Orya", "Zyyy"]
 PromptStatus = Literal["draft", "approved", "retired"]
-LanguageTag = Annotated[
-    str, StringConstraints(pattern=r"^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$", max_length=35)
-]
 # Controlled list to come from Q-X5; until then any short lowercase tag.
 TopicTag = Annotated[str, StringConstraints(pattern=r"^[a-z][a-z0-9_-]{1,39}$")]
 PromptText = Annotated[MultiLine, Field(max_length=1000)]

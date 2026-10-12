@@ -105,13 +105,18 @@ def _submission(db: Session, world: World, **extra: object) -> Submission:
     return submission
 
 
-def _recording(db: Session, submission: Submission) -> Recording:
-    recording = Recording(
+def _new_recording(submission: Submission, **extra: object) -> Recording:
+    return Recording(
         submission_id=submission.id,
         original_object_key=f"originals/{uuid.uuid4()}.webm",
         sha256_original=SHA,
         size_bytes=1000,
+        **extra,
     )
+
+
+def _recording(db: Session, submission: Submission, **extra: object) -> Recording:
+    recording = _new_recording(submission, **extra)
     db.add(recording)
     db.flush()
     return recording
@@ -342,6 +347,7 @@ def test_original_recording_identity_is_frozen(db: Session, world: World) -> Non
     for column, value in (
         ("original_object_key", "originals/other"),
         ("sha256_original", "b" * 64),
+        ("upload_key", uuid.uuid4()),
     ):
         _fails(
             db,
@@ -355,6 +361,16 @@ def test_original_recording_identity_is_frozen(db: Session, world: World) -> Non
     )
     db.commit()
     _fails(db, delete(Recording).where(Recording.id == recording.id), "append_only")
+
+
+def test_an_upload_key_is_used_once_per_submission(db: Session, world: World) -> None:
+    submission = _submission(db, world)
+    key = uuid.uuid4()
+    _recording(db, submission, upload_key=key)
+    db.commit()
+    _fails_add(db, _new_recording(submission, upload_key=key), "uq_recordings_upload_key")
+    _recording(db, _submission(db, world), upload_key=key)  # another submission may reuse it
+    db.commit()
 
 
 def test_only_the_erasure_routine_deletes_recordings(db: Session, world: World) -> None:

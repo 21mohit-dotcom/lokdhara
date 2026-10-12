@@ -20,6 +20,7 @@ These are assumptions the plan currently relies on. Each one can change the desi
 | A8 | Hosting can be either institutional infrastructure or a small paid VPS + object storage. | Deployment doc has both paths. |
 | A9 | The repository will contain code and documentation only, never collected data. | — (this is a hard rule, not just an assumption). |
 | A10 | Voice recordings are personal data, and some content may be culturally sensitive. | — (treated as true for design purposes). |
+| A11 | One recording per submission is enough for the MVP: a retake replaces the recording on the device before upload, and a second part is a separate submission linked as `continuation`. | Allow several recordings per submission; the schema already permits it, only the upload check changes. |
 
 ## 2. Open questions
 
@@ -79,6 +80,7 @@ These are assumptions the plan currently relies on. Each one can change the desi
 | Q-T4 | Which object-storage provider meets cost and residency needs? | Compare after Q-L7 | Blocks M8 |
 | Q-T5 | Does near-duplicate audio detection (e.g., Chromaprint) work usefully on speech? | Experiment in M4 | Later |
 | Q-T6 | Which fonts render Nag Mundari acceptably on target phones? | Device test in M3 | Blocks M3 if Nag Mundari is required |
+| Q-T7 | How long may an uploaded file wait in quarantine for its draft to be submitted? The SPA submits right after uploading, but `cleanup.quarantine` must not delete files of drafts still being submitted. | Decide in M4 | Blocks M4 |
 
 ### 2.1 Q-T1 findings: device recording spike (2026-10-11)
 
