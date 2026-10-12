@@ -129,3 +129,9 @@ def login(client: TestClient, user: TestUser) -> str:
     )
     assert response.status_code == 200, response.text
     return str(response.json()["csrf_token"])
+
+
+def act_as(client: TestClient, user: TestUser) -> None:
+    """Signs in as `user` and sends their CSRF token with every later request."""
+    client.cookies.clear()
+    client.headers["X-CSRF-Token"] = login(client, user)

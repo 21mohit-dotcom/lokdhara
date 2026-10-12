@@ -59,6 +59,9 @@ class Settings(BaseSettings):
     # In development and test a key is derived from LKD_SECRET_KEY when this is empty.
     identity_encryption_key: SecretStr | None = None
 
+    # No minors in the pilot until Q-L4 is answered; the schema already supports guardians.
+    allow_minors: bool = False
+
     # Login throttling
     login_max_failures: int = Field(default=5, gt=0)
     login_max_failures_per_ip: int = Field(default=20, gt=0)
