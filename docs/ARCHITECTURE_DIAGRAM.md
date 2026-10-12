@@ -72,6 +72,8 @@ stateDiagram-v2
     withdrawn --> [*]
 ```
 
+`uploading` happens on the device: the server keeps a submission in `draft` while its recording uploads, and `submit` moves it straight to `processing` (docs/API_SPECIFICATION.md §4).
+
 Restriction (`sensitive`, `third_party_voice`, `contains_pii`, `culturally_restricted`) is a **separate flag set**, not a state, because an approved item can also be restricted.
 
 ## 4. Effective access computation

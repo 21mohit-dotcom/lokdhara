@@ -155,7 +155,7 @@ CHECKs: consent before leaving `draft`; `recording_mode` is NULL exactly for `te
 |--------|------|-------|
 | id | uuid PK | |
 | submission_id 🔎 | uuid FK submissions | |
-| original_object_key 🧊 | text NOT NULL | `originals/…` |
+| original_object_key 🧊 | text NOT NULL | `{yyyy}/{mm}/{recording_id}/original.{ext}`; the same key in the quarantine bucket until promotion, then in originals. |
 | original_filename_ext | text | Extension only; full client filename not stored (may contain names). |
 | sha256_original 🧊🔎 | char(64) NOT NULL | |
 | sha256_pcm 🔎 | char(64) NULL | Hash of decoded mono PCM; catches re-encoded duplicates. |
