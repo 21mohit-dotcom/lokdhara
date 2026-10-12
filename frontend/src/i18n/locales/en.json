@@ -25,6 +25,17 @@
     "password": "Password",
     "submit": "Sign in"
   },
+  "record": {
+    "recording": "Recording",
+    "stop": "Stop",
+    "start": "Start recording",
+    "again": "Record again",
+    "chooseFile": "Choose an audio file",
+    "noMicrophone": "The microphone could not be used. Allow microphone access, or choose a file instead.",
+    "tooShort": "That was shorter than a second. Please record again.",
+    "ready": "Recording ready. Listen to check it.",
+    "listen": "Listen to the recording"
+  },
   "errors": {
     "generic": "Something went wrong ({{code}}). Please try again.",
     "network_error": "No connection. Your work is saved on this phone and will upload when you are back online.",
