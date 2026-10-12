@@ -2,6 +2,8 @@
 
 Status: **Proposed.** Applies to standalone Mundari text, transcriptions, and translations.
 
+Implementation status (Milestone 3): §2 safety checks, §3 NFC, and the §8 uncertainty flag are pure functions in `backend/app/text/`, applied when a revision is saved. §5 script detection and §10 duplicate checks run in the `text.derive` job (M4); §6 waits for a policy (Q-X2).
+
 ## 0. Principles
 
 1. **Store what the person wrote.** `content_original` is the submitted text, byte-for-byte, after only the safety rejections in §2 (ADR-010). We do not "fix" spelling on input.

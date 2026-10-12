@@ -89,7 +89,7 @@ Speakers and consent (except withdrawal requests, which come with the withdrawal
 | POST | `/submissions/{id}/submit` | owner | Draft → processing; checks consent and required parts |
 | POST | `/submissions/{id}/withdraw` | owner/admin 🔒 | Withdraw a single submission |
 
-Implemented in Milestone 3: create, list, read, edit, upload, and submit (text layers and withdrawal follow).
+Implemented in Milestone 3: create, list, read, edit, upload, text layers, and submit (withdrawal follows).
 
 - **Create** takes the body above plus optional `title`; `collection_context` accepts only the keys in [DATA_DICTIONARY.md](DATA_DICTIONARY.md) §3. Sending the same `client_submission_id` again returns the same draft (`201`). `collection_method` must fit: `self_recorded` only for your own speaker profile, `facilitator_field` / `facilitator_remote` only for someone else's (facilitators and admins), `imported_archive` only for admins. A prompt must be approved and fit the mode (image or situation for `prompted`, read sentence for `read`).
 - **List** is newest first, `limit` 1–100 (default 50), with `next_cursor`. `mine=true` (default) lists what you created; `mine=false` adds what you may see under the access rule (facilitators: their speakers' submissions; admins: all).
@@ -128,6 +128,12 @@ Implemented in Milestone 3. `POST /admin/prompts` and `/versions` are multipart:
 | GET | `/text-layers/{id}/revisions` | per access rules | Full history |
 | POST | `/text-layers/{id}/revisions` | owner (pre-approval) / reviewer | `{base_revision_id, content, change_note?}` → `201` or `409 revision_conflict` |
 | GET | `/text-revisions/{a}/diff/{b}` | per access rules | Character-level diff |
+
+Implemented in Milestone 3, except the diff (it comes with the review editor in M6) and reviewer revisions (M6).
+
+- **`POST /submissions/{id}/text-layers`** (owner, while the submission is a draft or has changes requested): standalone text needs `entry_type` and fits `text` and `audio_text` submissions; a transcription names a `recording_id` of the same submission; a translation names a `source_layer_id` of the same submission (standalone or transcription) and must be in another language. One transcription per recording and script, one translation per source and language; later changes are revisions. Returns the layer with its first revision (`201`).
+- **Revisions** keep `content` exactly as sent; the server also stores an NFC copy. `uncertainty_markup` is true when the text contains `[?…]` or `[inaudible]`. A translation's revision records the source revision it was made from, and the layer shows `source_changed: true` once the source has a newer revision. `POST /text-layers/{id}/revisions` returns the layer with its new current revision; `GET …/revisions` is newest first.
+- Error codes: `text_layer_not_found` (404), `layer_not_allowed` / `layer_link_invalid` / `same_language` (422), `layer_exists` (409), `text_empty` / `text_too_long` / `disallowed_character` (422), `revision_conflict` (409), `submission_not_editable` (409), `forbidden` (403). Invalid UTF-8 cannot reach these checks: the JSON body is refused first (`validation_failed`).
 
 ## 7. Review
 

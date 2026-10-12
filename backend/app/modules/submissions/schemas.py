@@ -1,10 +1,11 @@
 import uuid
 from datetime import UTC, date, datetime, timedelta
-from typing import Literal, Self
+from typing import Annotated, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from app.languages import LanguageTag
+from app.languages import LanguageTag, Script
+from app.text.safety import LONGEST
 from app.text_input import MultiLine, SingleLine
 
 Kind = Literal["audio", "text", "audio_text"]
@@ -27,6 +28,10 @@ SubmissionStatus = Literal[
     "withdrawn",
 ]
 DeviceHint = Literal["browser_recorder", "file_upload"]
+LayerType = Literal["standalone", "transcription", "translation"]
+EntryType = Literal["word", "phrase", "sentence", "paragraph", "long_text"]
+# Kept exactly as sent; app.text.safety checks it and the entry type's limit in the service.
+TextContent = Annotated[str, Field(max_length=LONGEST)]
 
 
 class CollectionContext(BaseModel):
@@ -104,24 +109,77 @@ class RecordingOut(BaseModel):
     created_at: datetime
 
 
+class TextLayerCreateRequest(BaseModel):
+    """A text layer and its first revision. Standalone text needs an `entry_type`; a
+    transcription names the `recording_id` it transcribes; a translation names the
+    `source_layer_id` it translates (docs/TEXT_PROCESSING_PIPELINE.md §7)."""
+
+    layer_type: LayerType
+    recording_id: uuid.UUID | None = None
+    source_layer_id: uuid.UUID | None = None
+    entry_type: EntryType | None = None
+    language_tag: LanguageTag
+    script_code: Script
+    content: TextContent
+
+    @model_validator(mode="after")
+    def _links(self) -> Self:
+        expected = {
+            "standalone": (False, False, True),
+            "transcription": (True, False, False),
+            "translation": (False, True, False),
+        }[self.layer_type]
+        given = (
+            self.recording_id is not None,
+            self.source_layer_id is not None,
+            self.entry_type is not None,
+        )
+        if given != expected:
+            raise ValueError(
+                "standalone text needs entry_type, a transcription recording_id, and a "
+                "translation source_layer_id, and nothing else"
+            )
+        return self
+
+
+class RevisionCreateRequest(BaseModel):
+    """`base_revision_id` is the revision the edit started from; if someone saved a newer one
+    in the meantime the edit is refused with 409 instead of silently replacing theirs."""
+
+    base_revision_id: uuid.UUID
+    content: TextContent
+    change_note: SingleLine | None = Field(default=None, max_length=500)
+
+
 class RevisionOut(BaseModel):
     id: uuid.UUID
     revision_number: int
     content: str
     origin: str
+    based_on_revision_id: uuid.UUID | None
+    source_revision_id: uuid.UUID | None
+    uncertainty_markup: bool
     verification_status: str
+    change_note: str | None
     created_at: datetime
+
+
+class RevisionListOut(BaseModel):
+    items: list[RevisionOut]
 
 
 class TextLayerOut(BaseModel):
     id: uuid.UUID
-    layer_type: str
+    submission_id: uuid.UUID
+    layer_type: LayerType
     recording_id: uuid.UUID | None
     source_layer_id: uuid.UUID | None
-    entry_type: str | None
+    entry_type: EntryType | None
     language_tag: str
     script_code: str
     current_revision: RevisionOut | None
+    # Translations only: the source text has a newer revision than the one translated.
+    source_changed: bool
 
 
 class SubmissionOut(BaseModel):
