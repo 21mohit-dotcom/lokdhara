@@ -2,7 +2,7 @@
 
 Each ADR records a decision, the alternatives, and **the conditions under which we would revisit it**. Status values: *Proposed* (awaiting the project owner's approval), *Accepted*, *Superseded by ADR-NNN*. Never edit an accepted ADR's decision in place; add a new ADR that supersedes it.
 
-All ADRs below were **Accepted** by the project owner on 2026-10-11.
+ADRs 001–019 were **Accepted** by the project owner on 2026-10-11 (ADR-019 after the Milestone 2 spike).
 
 | # | Title | Status |
 |---|-------|--------|
@@ -24,7 +24,7 @@ All ADRs below were **Accepted** by the project owner on 2026-10-11.
 | 016 | UUIDv7 internal IDs and pseudonymous public codes | Accepted |
 | 017 | Repository holds code and documentation only | Accepted |
 | 018 | Three recording modes (free, prompted, read) with a versioned prompt library | Accepted |
-| 019 | In-house PostgreSQL job table instead of Procrastinate (refines ADR-007) | Proposed |
+| 019 | In-house PostgreSQL job table instead of Procrastinate (refines ADR-007) | Accepted |
 
 ---
 
@@ -143,7 +143,7 @@ All ADRs below were **Accepted** by the project owner on 2026-10-11.
 
 ## ADR-019 — In-house PostgreSQL job table instead of Procrastinate
 
-- **Status:** Proposed (Milestone 2 spike, 2026-10-11); refines ADR-007, which allowed this fallback.
+- **Status:** Accepted (project owner, 2026-10-11, after the Milestone 2 spike); refines ADR-007, which allowed this fallback.
 - **Context:** The M2 spike checked Procrastinate 3.10 against our needs. (1) Jobs must be enqueued in the **same transaction** as the domain change (e.g. a recording row and its validation job), but Procrastinate's SQLAlchemy connector supports only psycopg2 and opens its own connections, while we use psycopg 3 sessions. (2) It ships its own 600-line schema and 39 versioned SQL migrations that must be applied in step with library upgrades, a second migration system next to Alembic. (3) Its worker is async-first, while our handlers are synchronous (FFmpeg subprocesses, SQLAlchemy sessions).
 - **Decision:** A `jobs` table owned by our migrations. `enqueue()` inserts into the caller's session, so it commits or rolls back with the domain change. Workers claim one due job with `UPDATE … WHERE id = (SELECT … FOR UPDATE SKIP LOCKED)`, holding a lease (`LKD_WORKER_LEASE_SECONDS`); a job whose lease expires is taken by another worker. Failures retry with exponential backoff (30 s doubling, capped at 1 h) up to `max_attempts`; `JobError(retryable=False)` fails at once. Handler writes commit atomically with the success record and roll back on failure. Every attempt appends a `processing_runs` row. A partial unique index on `dedupe_key` allows at most one pending job per key. Admins list failed jobs and retry them (audited).
 - **Alternatives:** Procrastinate (above); Celery/RQ + Redis (rejected in ADR-007).
