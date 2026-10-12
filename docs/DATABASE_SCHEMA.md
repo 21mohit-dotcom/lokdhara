@@ -1,6 +1,6 @@
 # Database Schema
 
-Status: **Implemented except datasets.** §1–§5 and §7 are implemented by migrations `0001`–`0008` in `backend/migrations/`; §6 (datasets) is the logical schema for the dataset milestone. Where the migrations refine this document, ADR-020 records why. Field meanings are in [DATA_DICTIONARY.md](DATA_DICTIONARY.md).
+Status: **Implemented except datasets.** §1–§5 and §7 are implemented by migrations `0001`–`0009` in `backend/migrations/`; §6 (datasets) is the logical schema for the dataset milestone. Where the migrations refine this document, ADR-020 records why. Field meanings are in [DATA_DICTIONARY.md](DATA_DICTIONARY.md).
 
 Conventions:
 
@@ -169,9 +169,10 @@ CHECKs: consent before leaving `draft`; `recording_mode` is NULL exactly for `te
 | quality_metrics 🗂 | jsonb NULL | peak_dbfs, rms_dbfs, integrated_lufs, clipping_ratio, silence_ratio, speech_ratio_vad. |
 | quality_flags 🔎 | text[] DEFAULT '{}' | `silent`, `too_short`, `clipping`, `very_quiet`, `possible_duplicate`. |
 | recorded_device_hint | text NULL | Browser-recorded vs. file upload. |
+| upload_key 🧊 | uuid NULL | The upload's `Idempotency-Key` (migration `0009`); `UNIQUE (submission_id, upload_key)`, so a retried upload returns the stored recording. |
 | created_at | timestamptz | |
 
-Index: `UNIQUE (sha256_original)` is **not** enforced (duplicates must be stored and flagged, not rejected silently); use a normal index. Frozen: `id`, `submission_id`, `original_object_key`, `sha256_original`, `size_bytes`, `created_at`; validation results fill in later. `recorded_device_hint` is `browser_recorder` or `file_upload`.
+Index: `UNIQUE (sha256_original)` is **not** enforced (duplicates must be stored and flagged, not rejected silently); use a normal index. Frozen: `id`, `submission_id`, `original_object_key`, `sha256_original`, `size_bytes`, `upload_key`, `created_at`; validation results fill in later. `recorded_device_hint` is `browser_recorder` or `file_upload`.
 
 ### `renditions` 🧊
 `id, recording_id FK, kind ('playback_opus','playback_aac','analysis_flac_16k_mono','waveform_peaks'), object_key, sha256, size_bytes, params jsonb 🗂, params_sha256, tool_versions jsonb 🗂, processing_run_id FK, created_at` — UNIQUE (recording_id, kind, params_sha256). `playback_aac` serves browsers without Opus support (iPhone).
