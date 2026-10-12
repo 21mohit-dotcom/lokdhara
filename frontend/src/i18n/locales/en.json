@@ -76,10 +76,126 @@
     "ready": "Recording ready. Listen to check it.",
     "listen": "Listen to the recording"
   },
+  "prompt": {
+    "typeLegend": "What should the speaker respond to?",
+    "image": "A picture",
+    "situation": "A situation",
+    "scriptLegend": "Which script should the sentence be in?",
+    "another": "Show another",
+    "imageAlt": "Picture to describe",
+    "listen": "Listen to the prompt"
+  },
+  "scripts": {
+    "Deva": "Devanagari",
+    "Latn": "Latin (Roman)",
+    "Nagm": "Mundari Bani (Nag Mundari)",
+    "Zyyy": "Mixed or other"
+  },
+  "text": {
+    "hint": "Write exactly as you would. There is no single correct spelling.",
+    "transcriptionHint": "Optional: write down what is said in the recording, as you hear it.",
+    "entryType": "What are you writing?",
+    "script": "Script",
+    "mundari": "Mundari text",
+    "transcription": "What is said",
+    "translation": {
+      "hi": "Hindi translation (optional)",
+      "en": "English translation (optional)"
+    }
+  },
+  "entryTypes": {
+    "word": "A word",
+    "phrase": "A phrase",
+    "sentence": "A sentence",
+    "paragraph": "A paragraph",
+    "long_text": "A long text (story, song)"
+  },
+  "details": {
+    "contentType": "What kind of content is it?",
+    "title": "Title (optional)",
+    "dialect": "Dialect, as you call it (optional)",
+    "region": "Area (optional)",
+    "regionHint": "A district or block is enough, never a village or address.",
+    "recordedOn": "Date recorded (optional)",
+    "setting": "Where was it recorded?",
+    "equipment": "What was it recorded with?",
+    "speakerCount": "How many people speak in it?",
+    "notes": "Notes (optional)",
+    "notesHint": "Do not write names or contact details here."
+  },
+  "contentTypes": {
+    "story": "Story",
+    "conversation": "Conversation",
+    "vocabulary": "Words",
+    "song": "Song",
+    "sentence_list": "Sentences",
+    "other": "Other"
+  },
+  "settings": {
+    "indoor_quiet": "Indoors, quiet",
+    "indoor_noisy": "Indoors, noisy",
+    "outdoor": "Outdoors",
+    "unknown": "Not sure"
+  },
+  "equipment": {
+    "phone_builtin_mic": "Phone",
+    "phone_external_mic": "Phone with external microphone",
+    "field_recorder": "Recorder",
+    "unknown": "Not sure"
+  },
+  "wizard": {
+    "speaker": "Speaker {{code}}",
+    "progress": "Step {{step}} of {{total}}",
+    "steps": {
+      "kind": "What would you like to add?",
+      "mode": "How will you record?",
+      "prompt": "Choose a prompt",
+      "audio": "Record",
+      "text": "Text",
+      "details": "Details",
+      "review": "Check and send"
+    },
+    "kindLegend": "Choose one",
+    "modeLegend": "Choose one",
+    "back": "Back",
+    "next": "Next",
+    "saveAndUpload": "Save and upload",
+    "saveForLater": "Save for later",
+    "leave": "Leave (your work stays on this phone)"
+  },
   "kinds": {
     "audio": "Audio",
     "text": "Text",
     "audio_text": "Audio and text"
+  },
+  "modes": {
+    "free": {
+      "label": "Speak freely",
+      "hint": "A story, a memory, anything"
+    },
+    "prompted": {
+      "label": "Respond to a picture or situation",
+      "hint": "We show something to talk about"
+    },
+    "read": {
+      "label": "Read a sentence",
+      "hint": "We show a sentence to read aloud"
+    }
+  },
+  "review": {
+    "kind": "Type",
+    "mode": "Recording",
+    "prompt": "Prompt",
+    "audio": "Audio",
+    "audioSource": {
+      "browser_recorder": "Recorded on this phone",
+      "file_upload": "Chosen from a file"
+    },
+    "text": {
+      "standalone": "Text",
+      "transcription": "What is said",
+      "translation": "Translation ({{language}})"
+    }
   },
   "submissions": {
     "title": "My submissions",
