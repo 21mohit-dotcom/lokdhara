@@ -137,3 +137,11 @@ def upload_recording(
         device_hint=source,
     )
     return UploadOut(recording_id=recording.id, upload_status=recording.upload_status)
+
+
+@router.post("/submissions/{submission_id}/submit")
+def submit_submission(
+    submission_id: uuid.UUID, user: Recorder, db: DbSession, store: Store
+) -> SubmissionDetailOut:
+    submission = service.submit(db, store, user=user, submission_id=submission_id)
+    return _detail(db, submission)

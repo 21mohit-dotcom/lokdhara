@@ -1,9 +1,11 @@
-"""Submission drafts (docs/USER_FLOWS.md F1).
+"""Submission drafts and submitting them for processing (docs/USER_FLOWS.md F1).
 
 A draft exists on the device first; the server copy is created when the contributor uploads.
-Consent is required before any audio reaches the server.
+Consent is required before any audio reaches the server and again at submit, when the active
+consent record is attached (the database refuses to let a submission leave draft without one).
 """
 
+import unicodedata
 import uuid
 
 from sqlalchemy import ColumnElement, and_, or_, select, true
@@ -11,15 +13,19 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.errors import ApiError
+from app.modules.consents import service as consents
 from app.modules.identity.service import AuthenticatedUser, utcnow
+from app.modules.processing import queue
 from app.modules.prompts import service as prompts
 from app.modules.speakers import service as speakers
 from app.modules.speakers.models import Speaker
 from app.modules.submissions.models import Recording, Submission, TextLayer, TextRevision
 from app.modules.submissions.schemas import SubmissionCreateRequest, SubmissionUpdateRequest
+from app.object_store import Bucket, ObjectStore
 
 EDITABLE_STATUSES = ("draft", "changes_requested")
 AUDIO_KINDS = ("audio", "audio_text")
+TEXT_KINDS = ("text", "audio_text")
 MAX_PAGE = 100
 
 
@@ -61,7 +67,7 @@ def get_visible(db: Session, user: AuthenticatedUser, submission_id: uuid.UUID) 
 def get_owned(
     db: Session, user: AuthenticatedUser, submission_id: uuid.UUID, *, for_update: bool = False
 ) -> Submission:
-    """Only the person who created a submission edits it or uploads to it."""
+    """Only the person who created a submission edits, uploads to, or submits it."""
     query = select(Submission).where(Submission.id == submission_id, visible_to(user))
     if for_update:
         query = query.with_for_update()
@@ -196,3 +202,92 @@ def text_layers_of(
             .order_by(TextLayer.created_at)
         )
     ]
+
+
+# ------------------------------------------------------------------ submit
+
+
+def submit(
+    db: Session, store: ObjectStore, *, user: AuthenticatedUser, submission_id: uuid.UUID
+) -> Submission:
+    """Draft → processing. Attaches the speaker's active consent and queues validation."""
+    submission = get_owned(db, user, submission_id, for_update=True)
+    if submission.status != "draft":
+        raise ApiError(409, "submission_not_draft", "Only drafts can be submitted.")
+    speaker = speakers.get_for_action(db, user, submission.speaker_id)
+    consent = consents.active_consent(db, speaker.id)
+    if consent is None:
+        raise consent_required()
+
+    recordings = recordings_of(db, submission.id)
+    if submission.kind in AUDIO_KINDS and not recordings:
+        raise ApiError(422, "recording_required", "Upload the recording before submitting.")
+    for recording in recordings:
+        if store.head(Bucket.QUARANTINE, recording.original_object_key) is None:
+            raise ApiError(
+                409, "recording_missing", "The uploaded recording is no longer available."
+            )
+    has_text = any(revision for _, revision in text_layers_of(db, submission.id))
+    if submission.kind in TEXT_KINDS and not has_text:
+        raise ApiError(422, "text_required", "Add the text before submitting.")
+
+    if submission.recording_mode == "read" and submission.prompt_id is not None:
+        has_text = _add_prompt_text(db, submission, recordings[0]) or has_text
+
+    submission.consent_record_id = consent.id
+    submission.status = "processing"
+    submission.submitted_at = submission.updated_at = utcnow()
+    for recording in recordings:
+        queue.enqueue(
+            db,
+            "audio.validate",
+            target_type="recording",
+            target_id=recording.id,
+            dedupe_key=f"audio.validate:{recording.id}",
+        )
+    if has_text:
+        queue.enqueue(
+            db,
+            "text.derive",
+            target_type="submission",
+            target_id=submission.id,
+            dedupe_key=f"text.derive:{submission.id}",
+        )
+    db.commit()
+    return submission
+
+
+def _add_prompt_text(db: Session, submission: Submission, recording: Recording) -> bool:
+    """Read speech: the sentence that was read becomes the first transcription, with origin
+    `prompt_text` and unverified, because speakers do not always read exactly what is shown.
+    Skipped when the contributor already typed a transcription of their own."""
+    if submission.prompt_id is None:
+        return False
+    already = db.scalar(
+        select(TextLayer.id)
+        .where(TextLayer.recording_id == recording.id, TextLayer.layer_type == "transcription")
+        .limit(1)
+    )
+    prompt = prompts.recorded_prompt(db, submission.prompt_id)
+    if already is not None or prompt.text is None or prompt.script_code is None:
+        return False
+    layer = TextLayer(
+        submission_id=submission.id,
+        layer_type="transcription",
+        recording_id=recording.id,
+        language_tag=prompt.text_language_tag or submission.language_tag,
+        script_code=prompt.script_code,
+    )
+    db.add(layer)
+    db.flush()
+    revision = TextRevision(
+        layer_id=layer.id,
+        revision_number=1,
+        content_original=prompt.text,
+        content_nfc=unicodedata.normalize("NFC", prompt.text),
+        origin="prompt_text",
+    )
+    db.add(revision)
+    db.flush()
+    layer.current_revision_id = revision.id
+    return True

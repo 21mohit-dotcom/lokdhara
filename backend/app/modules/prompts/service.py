@@ -314,6 +314,14 @@ def get_for_recording(db: Session, prompt_id: uuid.UUID, recording_mode: str) ->
     return prompt
 
 
+def recorded_prompt(db: Session, prompt_id: uuid.UUID) -> Prompt:
+    """The exact version a submission used, whatever its status is now."""
+    prompt = db.get(Prompt, prompt_id)
+    if prompt is None:
+        raise _not_found()
+    return prompt
+
+
 def get_prompt(db: Session, user: AuthenticatedUser, prompt_id: uuid.UUID) -> Prompt:
     prompt = db.get(Prompt, prompt_id)
     if prompt is None or (prompt.status != "approved" and not user.has_role(*STAFF_ROLES)):
