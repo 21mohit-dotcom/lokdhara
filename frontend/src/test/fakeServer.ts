@@ -48,3 +48,12 @@ export const SESSION = {
   roles: [{ role: 'contributor', scope: null }],
   csrf_token: 'csrf-1',
 }
+
+export const SPEAKER = {
+  id: 's1',
+  speaker_code: 'SPK-7Q3M9A',
+  is_self: true,
+  status: 'active',
+  has_active_consent: true,
+  dialect_label: null,
+}

@@ -3,6 +3,8 @@ import type { RouteObject } from 'react-router'
 
 import { RequireAuth } from './auth/session'
 import { Layout } from './components/Layout'
+import { ChooseSpeakerPage } from './pages/ChooseSpeakerPage'
+import { ConsentPage } from './pages/ConsentPage'
 import { HomePage } from './pages/HomePage'
 import { LoginPage } from './pages/LoginPage'
 import { NotFoundPage } from './pages/NotFoundPage'
@@ -16,6 +18,8 @@ export const routes: RouteObject[] = [
     children: [
       { index: true, element: signedIn(<HomePage />) },
       { path: 'login', element: <LoginPage /> },
+      { path: 'contribute', element: signedIn(<ChooseSpeakerPage />) },
+      { path: 'speakers/:speakerId/consent', element: signedIn(<ConsentPage />) },
       { path: '*', element: <NotFoundPage /> },
     ],
   },

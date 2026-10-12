@@ -25,6 +25,45 @@
     "password": "Password",
     "submit": "Sign in"
   },
+  "speaker": {
+    "title": "Whose voice or text is this?",
+    "myself": "Mine",
+    "newPerson": "Someone else (new person)",
+    "registered": "People you registered",
+    "hasConsent": "Consent recorded",
+    "needsConsent": "Consent needed first"
+  },
+  "consent": {
+    "title": "Consent for {{code}}",
+    "testForm": "Test form: do not use it to record anyone for real.",
+    "defaultNo": "Each question is answered separately. Every answer starts as No.",
+    "yes": "Yes",
+    "no": "No",
+    "storeRequired": "Without permission to keep and review the recording, nothing can be recorded.",
+    "questions": {
+      "allow_store_and_review": "May we keep the recording safely and let trained reviewers listen to it and check the writing?",
+      "allow_research": "May approved researchers study it for language research?",
+      "allow_public_access": "May anyone on the internet listen to or read it in future?",
+      "allow_ai_training": "May it be used to build computer tools, such as speech recognition for Mundari?",
+      "allow_commercial_use": "May companies use it in products they sell?",
+      "demographics_consented": "May we record age group, home area, and languages spoken?",
+      "attribution": "How should the speaker be credited?"
+    },
+    "attribution": {
+      "pseudonymous": "A code instead of the name",
+      "name": "By name",
+      "none": "No credit"
+    },
+    "method": {
+      "legend": "How was consent given?",
+      "in_app": "The speaker confirmed on this screen",
+      "oral_recorded": "Spoken aloud and recorded",
+      "paper_reference": "On a paper form"
+    },
+    "oralHint": "Record the speaker answering the questions aloud. This recording is kept separately and is never part of the collection.",
+    "paperReference": "Paper form reference number",
+    "save": "Save consent"
+  },
   "record": {
     "recording": "Recording",
     "stop": "Stop",
@@ -44,6 +83,14 @@
     "login_locked": "Too many attempts. Please wait a little and try again.",
     "not_authenticated": "Please sign in again.",
     "csrf_failed": "Please reload the page and try again.",
-    "forbidden": "You do not have permission for this."
+    "forbidden": "You do not have permission for this.",
+    "speaker_not_found": "This person could not be found.",
+    "speaker_withdrawn": "This person has withdrawn from the project.",
+    "consent_form_not_found": "No consent form is available yet.",
+    "store_consent_required": "Permission to keep and review the recording is needed to take part.",
+    "minors_not_enabled": "Recording people under 18 is not possible yet.",
+    "evidence_required": "Please record the spoken consent.",
+    "evidence_not_audio": "The consent recording is not an audio file.",
+    "evidence_too_large": "The consent recording is too large."
   }
 }
