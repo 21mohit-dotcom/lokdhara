@@ -1,6 +1,6 @@
 # Implementation Roadmap
 
-Status: **Approved by Ayush Soni (project owner) on 2026-10-11.** M0, M1, and M2 complete (M2 on 2026-10-12); M3 starts on the owner's go-ahead. The **Blocks pilot** questions must still be answered before any real data is collected.
+Status: **Approved by Ayush Soni (project owner) on 2026-10-11.** M0, M1, and M2 complete (M2 on 2026-10-12); M3 in progress. The **Blocks pilot** questions must still be answered before any real data is collected.
 
 ## Approach
 
@@ -49,7 +49,7 @@ flowchart LR
 - **Tests:** migration up/down/up; trigger tests; auth tests (rate limit, session revoke, CSRF); storage contract tests; audit event written for role change.
 - **Before moving on:** schema reviewed against [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md); deviations recorded as ADRs.
 
-## M3 — Contributor submission workflow (vertical slice)
+## M3 — Contributor submission workflow (vertical slice) *(in progress: speaker and consent API done)*
 
 - **Deliverables:** speaker creation (self + facilitator); consent capture (in-app + oral recording evidence + paper reference) against a seeded **test** consent form; submission draft; recording-mode choice (free / prompted / read) with a seeded **test** prompt library and admin prompt management (see RECORDING_MODES.md); in-browser recording + file selection; IndexedDB drafts with retry; upload into quarantine; "my submissions" page; Hindi/English UI.
 - **Dependencies:** M2; answers to Q-G2, Q-G4, Q-G7, Q-X1, Q-X5, Q-X6 (provisional answers acceptable for development), Q-P1 user sessions recommended.

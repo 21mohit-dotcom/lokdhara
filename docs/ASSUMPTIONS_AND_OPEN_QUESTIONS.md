@@ -41,9 +41,9 @@ These are assumptions the plan currently relies on. Each one can change the desi
 | ID | Question | Who decides | Impact | Answer |
 |----|----------|-------------|--------|--------|
 | Q-G1 | Which community body or representatives should approve public release and AI-training uses? | Professor + community | Blocks any public/AI release | — |
-| Q-G2 | Should speakers be credited by name by default, pseudonymously, or by their choice? (Plan: by their choice, default pseudonymous.) | Community + professor | Blocks M3 | — |
+| Q-G2 | Should speakers be credited by name by default, pseudonymously, or by their choice? (Plan: by their choice, default pseudonymous.) | Community + professor | Blocks M3 | *Provisional for development (2026-10-12):* the speaker chooses; default pseudonymous. |
 | Q-G3 | Which content categories are culturally restricted (e.g., ritual songs, sacred stories), and who can see them? | Community representatives | Blocks M6 | — |
-| Q-G4 | In field practice, is consent captured before or after recording? | Facilitators + ethics | Blocks M3 | — |
+| Q-G4 | In field practice, is consent captured before or after recording? | Facilitators + ethics | Blocks M3 | *Provisional for development (2026-10-12):* the app asks for consent first, but a draft may be recorded before consent; it cannot be submitted until consent is attached (enforced by the database). |
 | Q-G5 | How are export holders bound to withdrawal requests (data use agreement)? | Professor + institution | Blocks M7 | — |
 | Q-G7 | Who approves images and situation prompts as culturally appropriate? | Community representatives | Blocks M3 | — |
 | Q-G6 | How is benefit returned to the community (access to materials, educational outputs)? | Professor + community | Later | — |
