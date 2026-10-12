@@ -77,6 +77,8 @@ infra/
 
 ### 4.1 Upload
 
+The SPA keeps each draft, recording included, in IndexedDB from its first step. On "Save and upload" it runs the steps below in order and saves its progress on the device after each one, so a retry continues where it stopped: create the submission (repeatable through `client_submission_id`), upload the recording, add the text layers, submit. Lost connections and `429`/`5xx` answers are retried after 10 s, 30 s, 1 min, then every 5 min, and at once when the browser is back online. The draft leaves the device only after the submit succeeds. Drafts belong to the signed-in user, so a shared phone never uploads one person's draft under another person's account.
+
 1. SPA sends `POST /api/v1/submissions/{id}/recordings` (multipart) with an `Idempotency-Key`.
 2. API checks session, role, ownership, the speaker's active consent, and the per-user upload rate; checks the leading bytes against allowed signatures; streams bytes to `quarantine/` while counting them and computing SHA-256. The key (`{yyyy}/{mm}/{recording_id}/original.{ext}`) is chosen here and reused in `originals/`, so `original_object_key` never changes.
 3. API creates a `recordings` row (`upload_status = quarantined`); if the row cannot be written, the quarantine object is deleted again.
