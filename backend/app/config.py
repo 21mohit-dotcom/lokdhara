@@ -58,6 +58,12 @@ class Settings(BaseSettings):
     # Recording uploads (docs/AUDIO_PROCESSING_PIPELINE.md §2)
     max_upload_bytes: int = Field(default=100 * 1024 * 1024, gt=0)
     uploads_per_user_per_hour: int = Field(default=60, gt=0)
+    max_audio_seconds: float = Field(default=30 * 60, gt=0)
+    max_audio_channels: int = Field(default=2, gt=0)
+    min_sample_rate_hz: int = Field(default=8000, gt=0)
+    max_sample_rate_hz: int = Field(default=96000, gt=0)
+    # Each ffprobe or FFmpeg run is stopped after this; keep it well under the worker lease.
+    ffmpeg_timeout_seconds: float = Field(default=300, gt=0)
 
     # Restricted speaker identity fields (AES-256-GCM). 32 random bytes, base64-encoded.
     # In development and test a key is derived from LKD_SECRET_KEY when this is empty.
