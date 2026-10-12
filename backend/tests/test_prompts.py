@@ -255,3 +255,12 @@ def _row(key: str, topics: list[str], author: uuid.UUID) -> Prompt:
         approved_by=author,
         created_by=author,
     )
+
+
+def test_dev_prompts_are_seeded_once(db: Session, make_user: MakeUser) -> None:
+    author = make_user("dev-admin", "admin")
+    assert service.ensure_dev_prompts(db, author.id) == 4
+    db.commit()
+    assert service.ensure_dev_prompts(db, author.id) == 0
+    keys = list(db.scalars(select(Prompt.prompt_key)))
+    assert all(key.startswith("test-") for key in keys)

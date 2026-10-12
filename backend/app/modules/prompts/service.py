@@ -22,6 +22,7 @@ from app.image_formats import sniff_image
 from app.modules.audit import service as audit
 from app.modules.audit.service import RequestContext
 from app.modules.identity.service import AuthenticatedUser
+from app.modules.prompts.dev_prompts import DEV_PROMPTS, SOURCE
 from app.modules.prompts.models import Prompt
 from app.modules.prompts.schemas import PromptCreateRequest, PromptVersionRequest
 from app.object_store import Bucket, ObjectStore, ObjectTooLarge, new_key
@@ -267,6 +268,31 @@ def _audit(
         target_id=prompt.id,
         details={"prompt_key": prompt.prompt_key, "version": prompt.version, **extra},
     )
+
+
+def ensure_dev_prompts(db: Session, admin_id: uuid.UUID) -> int:
+    """Adds missing approved test prompts; returns how many. Caller commits."""
+    added = 0
+    for dev in DEV_PROMPTS:
+        if db.scalar(select(Prompt.id).where(Prompt.prompt_key == dev.prompt_key).limit(1)):
+            continue
+        db.add(
+            Prompt(
+                prompt_key=dev.prompt_key,
+                version=1,
+                prompt_type=dev.prompt_type,
+                text=dev.text,
+                text_language_tag="hi",
+                script_code=dev.script_code,
+                source_and_licence=SOURCE,
+                topic_tags=list(dev.topic_tags),
+                status="approved",
+                approved_by=admin_id,
+                created_by=admin_id,
+            )
+        )
+        added += 1
+    return added
 
 
 # ------------------------------------------------------------------ recording (contributors)

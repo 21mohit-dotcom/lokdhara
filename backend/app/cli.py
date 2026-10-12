@@ -1,7 +1,7 @@
 """Operator commands.
 
     uv run python -m app.cli create-admin --username asha --display-name "Asha"
-    uv run python -m app.cli seed-dev          # synthetic users and test consent forms; dev only
+    uv run python -m app.cli seed-dev          # synthetic users, test consent forms and prompts
     uv run python -m app.cli ping-worker       # enqueue a no-op job to check the worker
 
 Accounts are invite-only (ADR-008); create-admin exists to bootstrap the first administrator.
@@ -23,6 +23,7 @@ from app.modules.consents import service as consents
 from app.modules.identity import service
 from app.modules.identity.models import ROLES, User, UserRole
 from app.modules.processing.queue import enqueue
+from app.modules.prompts import service as prompts
 from app.security import new_token
 
 # Synthetic development accounts: one per role, plus a second admin (two-admin rule).
@@ -91,6 +92,9 @@ def seed_dev() -> int:
             _create(db, username, display_name, password, roles)
             created.append((username, password))
         forms = consents.ensure_dev_forms(db)
+        admin_id = db.scalar(select(User.id).where(User.username == "dev-admin"))
+        assert admin_id is not None  # noqa: S101 - created above or by an earlier run
+        added_prompts = prompts.ensure_dev_prompts(db, admin_id)
         db.commit()
     if not created:
         print("Development users already exist.")
@@ -98,6 +102,8 @@ def seed_dev() -> int:
         print(f"{username:16} {password}")
     if forms:
         print(f"Added test consent forms: {', '.join(forms)} (not for real data).")
+    if added_prompts:
+        print(f"Added {added_prompts} test prompts (Hindi placeholders, not for real data).")
     return 0
 
 
@@ -117,7 +123,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     admin.add_argument("--display-name", required=True)
     admin.add_argument("--password-stdin", action="store_true", help="read password from stdin")
     commands.add_parser(
-        "seed-dev", help=f"create synthetic users ({', '.join(ROLES)}) and test consent forms"
+        "seed-dev",
+        help=f"create synthetic users ({', '.join(ROLES)}), test consent forms and prompts",
     )
     commands.add_parser("ping-worker", help="enqueue a no-op job to check the worker")
     args = parser.parse_args(argv)
