@@ -2,7 +2,7 @@
 
 Each ADR records a decision, the alternatives, and **the conditions under which we would revisit it**. Status values: *Proposed* (awaiting the project owner's approval), *Accepted*, *Superseded by ADR-NNN*. Never edit an accepted ADR's decision in place; add a new ADR that supersedes it.
 
-All ADRs below were **Accepted** by the project owner on 2026-10-11.
+ADRs 001–019 were **Accepted** by the project owner on 2026-10-11 (ADR-019 after the Milestone 2 spike).
 
 | # | Title | Status |
 |---|-------|--------|
@@ -24,7 +24,8 @@ All ADRs below were **Accepted** by the project owner on 2026-10-11.
 | 016 | UUIDv7 internal IDs and pseudonymous public codes | Accepted |
 | 017 | Repository holds code and documentation only | Accepted |
 | 018 | Three recording modes (free, prompted, read) with a versioned prompt library | Accepted |
-| 019 | In-house PostgreSQL job table instead of Procrastinate (refines ADR-007) | Proposed |
+| 019 | In-house PostgreSQL job table instead of Procrastinate (refines ADR-007) | Accepted |
+| 020 | Database triggers enforce column immutability and self-review; schema refinements from Milestone 2 | Proposed |
 
 ---
 
@@ -143,9 +144,22 @@ All ADRs below were **Accepted** by the project owner on 2026-10-11.
 
 ## ADR-019 — In-house PostgreSQL job table instead of Procrastinate
 
-- **Status:** Proposed (Milestone 2 spike, 2026-10-11); refines ADR-007, which allowed this fallback.
+- **Status:** Accepted (project owner, 2026-10-11, after the Milestone 2 spike); refines ADR-007, which allowed this fallback.
 - **Context:** The M2 spike checked Procrastinate 3.10 against our needs. (1) Jobs must be enqueued in the **same transaction** as the domain change (e.g. a recording row and its validation job), but Procrastinate's SQLAlchemy connector supports only psycopg2 and opens its own connections, while we use psycopg 3 sessions. (2) It ships its own 600-line schema and 39 versioned SQL migrations that must be applied in step with library upgrades, a second migration system next to Alembic. (3) Its worker is async-first, while our handlers are synchronous (FFmpeg subprocesses, SQLAlchemy sessions).
 - **Decision:** A `jobs` table owned by our migrations. `enqueue()` inserts into the caller's session, so it commits or rolls back with the domain change. Workers claim one due job with `UPDATE … WHERE id = (SELECT … FOR UPDATE SKIP LOCKED)`, holding a lease (`LKD_WORKER_LEASE_SECONDS`); a job whose lease expires is taken by another worker. Failures retry with exponential backoff (30 s doubling, capped at 1 h) up to `max_attempts`; `JobError(retryable=False)` fails at once. Handler writes commit atomically with the success record and roll back on failure. Every attempt appends a `processing_runs` row. A partial unique index on `dedupe_key` allows at most one pending job per key. Admins list failed jobs and retry them (audited).
 - **Alternatives:** Procrastinate (above); Celery/RQ + Redis (rejected in ADR-007).
 - **Consequences:** About 250 lines of code we own and test (`backend/app/modules/processing/queue.py`, `tests/test_jobs.py`). No scheduling or cron features: periodic jobs (quarantine cleanup) will be enqueued by a small scheduler loop when needed.
 - **Revisit when:** we need scheduled/periodic jobs, job priorities, or throughput beyond a few workers.
+
+## ADR-020 — Database triggers enforce column immutability and self-review
+
+- **Status:** Proposed (Milestone 2 domain migrations `0004`–`0007`, 2026-10-12); refines ADR-009, ADR-011, ADR-012.
+- **Context:** DATABASE_SCHEMA.md marks several tables 🧊 but also says some of their columns change later (consent status, prompt status, revision verification, recording validation results). A whole-row append-only trigger cannot express that, and leaving it to the services means one bug could rewrite consent or provenance. Writing the migrations also showed gaps in the proposed schema.
+- **Decision:** Two reusable trigger functions, with the same erasure-routine exception as `lkd_reject_change()`:
+  - `lkd_guard_columns(mutable…)`: the row is append-only except the listed columns. Used for `consent_forms` (`retired_at`), `consent_records` (`status`), `prompts` (`status`, `approved_by`), `text_revisions` (`verification_status`).
+  - `lkd_freeze_columns(frozen…)`: the listed columns never change; others may. Used for `speakers`, `submissions`, `recordings`, `text_layers` identity columns.
+  - A `BEFORE INSERT` trigger on `review_events` rejects any action other than `comment` by the submission's own submitter (the service checks this too).
+  - Refinements to the proposed schema: `consent_forms.is_test_form` (default true; real forms need Q-L3) and a CHECK that `text_sha256` matches `body_markdown`; `consent_records` CHECKs for oral evidence, paper reference, and guardian fields; `withdrawal_requests.recorded_by`; a `playback_aac` rendition kind (iPhone playback); `renditions.params_sha256` replaces the undefined `params_hash`; `speaker_identities.key_version` for key rotation; `app_readonly` cannot read `speaker_identities`.
+- **Alternatives:** Service-only enforcement (one code path away from silent rewrites); separate history tables for every mutable column (more tables and joins for little gain at MVP scale).
+- **Consequences:** Rule violations surface as database errors with stable prefixes (`append_only:`, `immutable_columns:`, `self_review:`) that services map to problem details. Schema changes to guarded tables must update the trigger's column list in the same migration.
+- **Revisit when:** a guarded column needs a legitimate correction workflow (add a dedicated routine, like erasure), or trigger overhead shows up in profiling.

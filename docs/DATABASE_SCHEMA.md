@@ -1,13 +1,16 @@
-# Database Schema (proposed)
+# Database Schema
 
-Status: **Partly implemented.** Identity (§1) and the audit log (§7) are implemented by migrations `0001`–`0002` in `backend/migrations/`; the rest is the logical schema that later Milestone 2 migrations implement. Field meanings are in [DATA_DICTIONARY.md](DATA_DICTIONARY.md).
+Status: **Implemented except datasets.** §1–§5 and §7 are implemented by migrations `0001`–`0007` in `backend/migrations/`; §6 (datasets) is the logical schema for the dataset milestone. Where the migrations refine this document, ADR-020 records why. Field meanings are in [DATA_DICTIONARY.md](DATA_DICTIONARY.md).
 
 Conventions:
 
 - PostgreSQL 18. Primary keys `id uuid DEFAULT uuidv7()`.
 - All timestamps `timestamptz`, UTC.
 - Enumerations are `text` columns with `CHECK` constraints (easier to migrate than PostgreSQL `ENUM` types).
-- **Append-only** tables have a trigger that rejects `UPDATE` and `DELETE` except by the dedicated withdrawal/deletion routine (which runs under a separate database role).
+- **Append-only** tables have a trigger that rejects `UPDATE` and `DELETE` except by the dedicated withdrawal/deletion routine (which runs under a separate database role). Three trigger functions (ADR-020):
+  - `lkd_reject_change()`: the whole row is immutable.
+  - `lkd_guard_columns(mutable…)`: immutable except the listed columns (e.g. consent `status`).
+  - `lkd_freeze_columns(frozen…)`: the listed identity columns never change; the rest may.
 - Column markers below: 🔒 restricted (admin-only or encrypted), 🧊 immutable after insert, 🔎 indexed for search/filter, 🗂 JSONB extensible.
 
 ## 1. Identity
@@ -48,6 +51,8 @@ Partial unique index: one active grant per (user, role, scope).
 
 ## 2. Speakers and consent
 
+Implemented by migration `0004`.
+
 ### `speakers`
 | Column | Type | Notes |
 |--------|------|-------|
@@ -65,8 +70,10 @@ Partial unique index: one active grant per (user, role, scope).
 | status | text CHECK IN ('active','withdrawn') | |
 | created_at | timestamptz | |
 
+Frozen: `id`, `speaker_code` (format `SPK-` + 5–12 of `0-9A-Z`), `created_by`.
+
 ### `speaker_identities` 🔒 (separate table; admin + creating facilitator only)
-`speaker_id PK/FK, full_name_enc, contact_enc, village_enc, notes_enc, created_at` — application-level encrypted columns (key from environment/secret store). Deleted on withdrawal.
+`speaker_id PK/FK, full_name_enc, contact_enc, village_enc, notes_enc, key_version, created_at, updated_at` — application-level encrypted `bytea` columns (key from environment/secret store; `key_version` allows rotation). Deleted on withdrawal. The `app_readonly` role cannot read this table.
 
 ### `consent_forms` 🧊
 | Column | Type | Notes |
@@ -78,8 +85,11 @@ Partial unique index: one active grant per (user, role, scope).
 | text_sha256 | text | Hash of the exact form text shown. |
 | body_markdown | text | The form text. |
 | ethics_reference | text NULL | IEC approval reference once available (Q-L3). |
+| is_test_form | boolean NOT NULL DEFAULT true | Test forms are for development only; real forms need Q-L3. |
 | effective_from, retired_at | timestamptz | |
 | UNIQUE | (form_code, version, language) | |
+
+CHECK: `text_sha256` equals the SHA-256 of `body_markdown`. Only `retired_at` may change.
 
 ### `consent_records` 🧊 (append-only; changes create a new row)
 | Column | Type | Notes |
@@ -105,12 +115,14 @@ Partial unique index: one active grant per (user, role, scope).
 | applies_to_past_contributions | boolean NOT NULL DEFAULT false | If true, a *wider* new record also widens earlier submissions; narrowing always applies to past submissions. |
 | notes | text NULL | |
 
-Partial unique index: one `active` record per speaker.
+Partial unique index: one `active` record per speaker. CHECKs: `allow_store_and_review` is true; `oral_recorded` needs `evidence_object_key`; `paper_reference` needs `paper_reference`; `guardian_relationship` only with `guardian_involved`. Only `status` may change.
 
 ### `withdrawal_requests`
-`id, speaker_id NULL, submission_id NULL, received_via ('in_app','facilitator','phone','in_person','email'), received_at, requested_scope ('full','narrow','specific_items'), verified_by NULL, verified_at NULL, status ('received','verified','in_progress','completed','rejected'), actions_taken jsonb 🗂, completed_at NULL`
+`id, speaker_id NULL, submission_id NULL (at least one set), received_via ('in_app','facilitator','phone','in_person','email'), received_at, recorded_by, requested_scope ('full','narrow','specific_items'), verified_by NULL, verified_at NULL, status ('received','verified','in_progress','completed','rejected'), actions_taken jsonb 🗂, completed_at NULL`
 
 ## 3. Submissions, audio, text
+
+Implemented by migrations `0005` (prompts, submissions, related items) and `0006` (recordings, renditions, text).
 
 ### `submissions`
 | Column | Type | Notes |
@@ -135,6 +147,8 @@ Partial unique index: one `active` record per speaker.
 | restriction_flags 🔎 | text[] DEFAULT '{}' | `sensitive`, `third_party_voice`, `contains_pii`, `culturally_restricted`, `minor`. |
 | created_at, submitted_at, updated_at | timestamptz | |
 
+CHECKs: consent before leaving `draft`; `recording_mode` is NULL exactly for `text` submissions; `prompt_id` is set exactly for `prompted`/`read`. Frozen: `id`, `client_submission_id`, `submitted_by`, `created_at`.
+
 ### `recordings`
 | Column | Type | Notes |
 |--------|------|-------|
@@ -156,10 +170,10 @@ Partial unique index: one `active` record per speaker.
 | recorded_device_hint | text NULL | Browser-recorded vs. file upload. |
 | created_at | timestamptz | |
 
-Index: `UNIQUE (sha256_original)` is **not** enforced (duplicates must be stored and flagged, not rejected silently); use a normal index.
+Index: `UNIQUE (sha256_original)` is **not** enforced (duplicates must be stored and flagged, not rejected silently); use a normal index. Frozen: `id`, `submission_id`, `original_object_key`, `sha256_original`, `size_bytes`, `created_at`; validation results fill in later. `recorded_device_hint` is `browser_recorder` or `file_upload`.
 
 ### `renditions` 🧊
-`id, recording_id FK, kind ('playback_opus','analysis_flac_16k_mono','waveform_peaks'), object_key, sha256, size_bytes, params jsonb 🗂, tool_versions jsonb 🗂, processing_run_id FK, created_at` — UNIQUE (recording_id, kind, params_hash).
+`id, recording_id FK, kind ('playback_opus','playback_aac','analysis_flac_16k_mono','waveform_peaks'), object_key, sha256, size_bytes, params jsonb 🗂, params_sha256, tool_versions jsonb 🗂, processing_run_id FK, created_at` — UNIQUE (recording_id, kind, params_sha256). `playback_aac` serves browsers without Opus support (iPhone).
 
 ### `text_layers`
 | Column | Type | Notes |
@@ -175,7 +189,7 @@ Index: `UNIQUE (sha256_original)` is **not** enforced (duplicates must be stored
 | current_revision_id | uuid FK text_revisions NULL | Pointer, updated in the same transaction as a new revision. |
 | created_at | timestamptz | |
 
-CHECK constraints enforce the `recording_id`/`source_layer_id` rules per `layer_type`.
+CHECK constraints enforce the `recording_id`/`source_layer_id` rules per `layer_type`. Only `current_revision_id` changes after insert.
 
 ### `text_revisions` 🧊 (append-only)
 | Column | Type | Notes |
@@ -199,7 +213,7 @@ CHECK constraints enforce the `recording_id`/`source_layer_id` rules per `layer_
 | change_note | text NULL | |
 | created_at | timestamptz | |
 
-Search indexes: GIN `to_tsvector('simple', content_nfc)`, GIN `content_nfc gin_trgm_ops`.
+Search indexes: GIN `to_tsvector('simple', content_nfc)`, GIN `content_nfc gin_trgm_ops` (`pg_trgm`). Provenance CHECKs: human origins need `author_user_id`; `machine` needs `tool_name` and `tool_version`; `confidence` only for `machine`; `content_normalized` and its policy version are set together. Only `verification_status` may change.
 
 ### `text_segments` (reserved, post-MVP)
 `id, revision_id FK, start_ms, end_ms, speaker_label, text_original, text_nfc` — for time alignment.
@@ -218,7 +232,7 @@ Search indexes: GIN `to_tsvector('simple', content_nfc)`, GIN `content_nfc gin_t
 | prompt_audio_object_key | text NULL | Optional spoken version for non-literate speakers. |
 | source_and_licence | text NOT NULL | Who made it and under what licence. |
 | topic_tags 🔎 | text[] | Controlled list (Q-X5). |
-| status 🔎 | text CHECK IN ('draft','approved','retired') | Status is the only field changed after insert. |
+| status 🔎 | text CHECK IN ('draft','approved','retired') | Only `status` and `approved_by` change after insert; approved or retired prompts need `approved_by`. |
 | approved_by | uuid FK users NULL | |
 | created_by, created_at | | |
 
@@ -227,13 +241,15 @@ Search indexes: GIN `to_tsvector('simple', content_nfc)`, GIN `content_nfc gin_t
 
 ## 4. Review
 
+Implemented by migration `0007`.
+
 ### `review_events` 🧊
 | Column | Type | Notes |
 |--------|------|-------|
 | id | uuid PK | |
 | submission_id 🔎 | uuid FK | |
 | text_revision_id | uuid FK NULL | When the decision concerns one revision. |
-| reviewer_id 🔎 | uuid FK users | CHECK in service: reviewer ≠ submitted_by. |
+| reviewer_id 🔎 | uuid FK users | Reviewer ≠ submitted_by, checked in the service and by a trigger (comments excepted). |
 | action | text CHECK IN ('open','approve','reject','request_changes','verify_revision','dispute_revision','add_restriction','remove_restriction','reopen','comment') | |
 | reason_code | text NULL | Controlled list (e.g., `wrong_language`, `inaudible`, `off_topic`, `abuse`, `duplicate`, `no_consent`). |
 | restriction | text NULL | For add/remove restriction. |

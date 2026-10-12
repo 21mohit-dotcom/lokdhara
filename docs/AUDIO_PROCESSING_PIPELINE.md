@@ -132,7 +132,7 @@ Notes:
 - Downmix to mono uses FFmpeg's default channel averaging; the original keeps both channels. If stereo recordings contain different speakers per channel (rare), reviewers flag it and channel-specific renditions are a future feature.
 - **Lossy sources stay lossy.** Converting an Opus or MP3 original to FLAC does not restore quality; `is_lossy_source` is exported so researchers can filter.
 - No loudness normalisation is applied to the analysis rendition (keeps signal comparable to the original). The playback rendition may apply `loudnorm` for listening comfort; this is recorded in `params`.
-- Opus playback on iOS Safari must be verified (Q-T2); AAC-LC 48 kbit/s M4A is the fallback rendition.
+- Opus playback on iOS Safari must be verified (Q-T2); AAC-LC 48 kbit/s M4A is the fallback rendition (`playback_aac`, allowed by the schema since migration `0006`).
 
 ### 3.7 Duplicate detection (`audio.dedupe`)
 
@@ -148,7 +148,7 @@ Duplicates are **never deleted automatically**; a reviewer decides.
 
 - Each job attempt writes a `processing_runs` row: job type, target, attempt number, start/end, worker ID, tool versions (`ffmpeg -version` first line, Python package versions), input checksum, outcome, sanitised error.
 - Retries: exponential backoff (e.g., 1 min, 5 min, 30 min); max 3 attempts for deterministic failures (decode errors don't retry — they reject), 5 for infrastructure failures (storage timeout).
-- After max attempts: job `dead`, submission `processing_failed`, admin dashboard shows it. Re-queue is idempotent: renditions are keyed by `(recording_id, kind, params_hash)` and overwritten only in `derived/`, never in `originals/`.
+- After max attempts: job `dead`, submission `processing_failed`, admin dashboard shows it. Re-queue is idempotent: renditions are keyed by `(recording_id, kind, params_sha256)` and overwritten only in `derived/`, never in `originals/`.
 - Worker crash mid-job: the job lock expires; the job is retried; partial derived files are written to a temp key and renamed only on success.
 - Temporary files live in a per-job temp directory deleted in a `finally` block; the container has a size-limited tmpfs.
 
