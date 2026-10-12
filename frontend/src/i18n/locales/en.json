@@ -5,9 +5,11 @@
   },
   "nav": {
     "home": "Home",
-    "language": "Language"
+    "language": "Language",
+    "signOut": "Sign out"
   },
   "home": {
+    "greeting": "Welcome, {{name}}",
     "newRecording": "New recording",
     "mySubmissions": "My submissions",
     "comingSoon": "This part of Lokdhara is being built."
@@ -15,5 +17,22 @@
   "notFound": {
     "title": "Page not found",
     "backHome": "Go to home"
+  },
+  "login": {
+    "title": "Sign in",
+    "inviteOnly": "Lokdhara is by invitation. Ask your coordinator for an account.",
+    "username": "Username",
+    "password": "Password",
+    "submit": "Sign in"
+  },
+  "errors": {
+    "generic": "Something went wrong ({{code}}). Please try again.",
+    "network_error": "No connection. Your work is saved on this phone and will upload when you are back online.",
+    "unexpected_error": "Something went wrong. Please try again.",
+    "invalid_credentials": "The username or password is not right.",
+    "login_locked": "Too many attempts. Please wait a little and try again.",
+    "not_authenticated": "Please sign in again.",
+    "csrf_failed": "Please reload the page and try again.",
+    "forbidden": "You do not have permission for this."
   }
 }
