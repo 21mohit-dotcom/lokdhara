@@ -131,6 +131,7 @@ def test_read_speech_gets_the_sentence_as_an_unverified_transcription(
     revision = layer["current_revision"]
     assert revision["content"] == "एक छोटा वाक्य।"
     assert (revision["origin"], revision["verification_status"]) == ("prompt_text", "unverified")
+    assert (revision["detected_scripts"], layer["script_mismatch"]) == (["Deva"], False)
     assert sorted(_jobs(db)) == [("audio.validate", "recording"), ("text.derive", "submission")]
 
 
