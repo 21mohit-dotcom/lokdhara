@@ -4,7 +4,8 @@
 fully decodes it, and then either promotes it to originals (a verified byte-for-byte copy under
 the same key, ADR-009) or rejects it with a code. `cleanup.quarantine` then removes the
 quarantine copy, `audio.analyze` measures a promoted original and flags it for reviewers, and
-`audio.renditions` makes the derived listening and research copies.
+`audio.renditions` makes the derived listening and research copies, and `audio.dedupe` links
+recordings that are the same file or the same sound.
 No database transaction stays open while files are copied, decoded, or measured.
 """
 
@@ -14,15 +15,16 @@ import uuid
 from pathlib import Path, PurePosixPath
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import func, or_, select
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
-from app.audio import ffmpeg, quality, renditions
+from app.audio import duplicates, ffmpeg, quality, renditions
 from app.audio.validation import AudioInfo, Limits, Rejection, check_decode, check_probe
 from app.config import Settings, get_settings
 from app.modules.processing import queue
 from app.modules.processing.queue import JobContext, JobError, JobResult, handler, utcnow
-from app.modules.submissions.models import Recording, Rendition, Submission
+from app.modules.submissions.models import Recording, RelatedItem, Rendition, Submission
 from app.object_store import (
     Bucket,
     IntegrityError,
@@ -131,7 +133,7 @@ def validate_recording(context: JobContext) -> JobResult:
         recording.is_lossy_source = verdict.is_lossy
         recording.upload_status = "promoted"
         summary = {"outcome": "promoted", "codec": verdict.codec, "duration_ms": duration_ms}
-        for job_type in ("audio.analyze", "audio.renditions"):
+        for job_type in ("audio.analyze", "audio.renditions", "audio.dedupe"):
             queue.enqueue(
                 db,
                 job_type,
@@ -295,5 +297,86 @@ def make_renditions(context: JobContext) -> JobResult:
     return JobResult(
         output_summary={"made": [kind.name for kind, *_ in made]},
         tool_versions=versions,
+        input_sha256=sha256,
+    )
+
+
+MAX_DUPLICATE_LINKS = 50
+
+
+def _flag_duplicate(recording: Recording) -> None:
+    if "possible_duplicate" not in recording.quality_flags:
+        recording.quality_flags = sorted({*recording.quality_flags, "possible_duplicate"})
+
+
+@handler("audio.dedupe")
+def find_duplicates(context: JobContext) -> JobResult:
+    """Flags this recording and earlier ones with the same file or the same sound, and links
+    their submissions. Nothing is ever deleted: a reviewer decides (docs/DATA_LIFECYCLE.md)."""
+    settings, store, db = get_settings(), get_object_store(), context.db
+    recording = _recording(db, context.target_id)
+    if recording.upload_status != "promoted":
+        raise JobError("not_promoted", retryable=False)
+    recording_id, key, sha256 = (
+        recording.id,
+        recording.original_object_key,
+        recording.sha256_original,
+    )
+    container = _container(key)
+    db.rollback()
+
+    version = ffmpeg.versions()["ffmpeg"]
+    with tempfile.TemporaryDirectory(prefix="lkd-job-") as folder:
+        source, pcm = Path(folder) / "input", Path(folder) / "pcm"
+        _download(store, Bucket.ORIGINALS, key, sha256, source)
+        try:
+            ffmpeg.convert(
+                source, container, duplicates.PCM_ARGS, pcm, timeout=settings.ffmpeg_timeout_seconds
+            )
+        except ffmpeg.FfmpegTimeout as exc:
+            raise JobError("ffmpeg_timeout", retryable=False) from exc
+        except ffmpeg.FfmpegFailed as exc:
+            raise JobError("decode_failed", retryable=False) from exc
+        sha256_pcm = duplicates.pcm_sha256(pcm, version)
+
+    # Two copies processed at the same moment must still find each other: whoever runs second
+    # waits here until the first has committed its fingerprint.
+    db.execute(select(func.pg_advisory_xact_lock(func.hashtext(sha256_pcm))))
+    matches = db.scalars(
+        select(Recording)
+        .where(
+            Recording.id != recording_id,
+            Recording.upload_status == "promoted",
+            or_(Recording.sha256_pcm == sha256_pcm, Recording.sha256_original == sha256),
+        )
+        .order_by(Recording.id)
+        .limit(MAX_DUPLICATE_LINKS)
+    ).all()
+    # Lock all affected rows in ID order, so jobs touching the same rows cannot deadlock.
+    ids = sorted([recording_id, *(match.id for match in matches)])
+    locked = {
+        row.id: row
+        for row in db.scalars(
+            select(Recording).where(Recording.id.in_(ids)).order_by(Recording.id).with_for_update()
+        )
+    }
+    recording = locked[recording_id]
+    recording.sha256_pcm = sha256_pcm
+    same_file = 0
+    for match in matches:
+        _flag_duplicate(locked[match.id])
+        same_file += match.sha256_original == sha256
+        pair = sorted([recording.submission_id, match.submission_id])
+        if pair[0] != pair[1]:
+            db.execute(
+                insert(RelatedItem)
+                .values(submission_a=pair[0], submission_b=pair[1], relation="possible_duplicate")
+                .on_conflict_do_nothing(constraint="uq_related_items_pair")
+            )
+    if matches:
+        _flag_duplicate(recording)
+    return JobResult(
+        output_summary={"matches": len(matches), "same_file": same_file},
+        tool_versions=ffmpeg.versions(),
         input_sha256=sha256,
     )
