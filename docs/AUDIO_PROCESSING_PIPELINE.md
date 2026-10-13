@@ -2,7 +2,7 @@
 
 Status: **Proposed.** Commands below were smoke-tested with FFmpeg 6.1 on synthetic audio during planning (2026-10-11); exact flags and thresholds must be re-validated in Milestone 4 against real device recordings (Q-T1).
 
-Implementation status (Milestone 4, parts 1 to 3): §3.2 probe, §3.3 full decode, and §3.4 promotion run in the `audio.validate` job (`backend/app/audio/`, `backend/app/modules/submissions/processing.py`); a `cleanup.quarantine` job then deletes the quarantine copy, and the `audio.analyze` job (§3.5) measures the original and sets the reviewer flags; `audio.renditions` (§3.6) makes the derived copies. Duplicate checks follow in a later part.
+Implementation status (Milestone 4, parts 1 to 4): §3.2 probe, §3.3 full decode, and §3.4 promotion run in the `audio.validate` job (`backend/app/audio/`, `backend/app/modules/submissions/processing.py`); a `cleanup.quarantine` job then deletes the quarantine copy, and the `audio.analyze` job (§3.5) measures the original and sets the reviewer flags; `audio.renditions` (§3.6) makes the derived copies; `audio.dedupe` (§3.7) flags and links duplicates.
 
 **FFmpeg version:** 6.1 as packaged by Ubuntu 24.04 (`6.1.1-3ubuntu5` when this was written). CI installs the same package on an `ubuntu-24.04` runner, and the worker image must use it too. The exact `-version` line of `ffmpeg` and `ffprobe` is stored in `processing_runs.tool_versions` for every validation.
 
@@ -167,6 +167,13 @@ As built (`backend/app/audio/renditions.py`):
 | Near-duplicate (trimmed, re-recorded) | Chromaprint fingerprint — **experimental for speech** (Q-T5) | Flag only after evaluation shows acceptable precision. |
 
 Duplicates are **never deleted automatically**; a reviewer decides.
+
+As built (`backend/app/audio/duplicates.py`, `audio.dedupe`):
+
+- `sha256_pcm` hashes the FFmpeg version line and the 16 kHz mono 16-bit samples, so fingerprints made by different FFmpeg versions never match. That can miss a duplicate after an upgrade but never invents one; re-fingerprinting old recordings after an upgrade is a later job.
+- A match is any other promoted recording with the same `sha256_pcm` or the same `sha256_original`. Both recordings get `possible_duplicate`, and their submissions are linked once in `related_items` (`relation = possible_duplicate`, no `created_by`, the pair stored in ID order). At most 50 matches are linked per recording.
+- A PostgreSQL advisory lock on the fingerprint makes two copies processed at the same moment find each other.
+- Not built yet: telling the contributor at upload time that they sent the same file before, and Chromaprint near-duplicates (Q-T5).
 
 ### 3.8 Processing logs and failure recovery
 
