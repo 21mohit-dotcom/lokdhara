@@ -2,7 +2,7 @@
 
 Status: **Proposed.** Commands below were smoke-tested with FFmpeg 6.1 on synthetic audio during planning (2026-10-11); exact flags and thresholds must be re-validated in Milestone 4 against real device recordings (Q-T1).
 
-Implementation status (Milestone 4, part 1): §3.2 probe, §3.3 full decode, and §3.4 promotion run in the `audio.validate` job (`backend/app/audio/`, `backend/app/modules/submissions/processing.py`); a `cleanup.quarantine` job then deletes the quarantine copy. Analysis, renditions, and duplicate checks follow in later parts.
+Implementation status (Milestone 4, parts 1 and 2): §3.2 probe, §3.3 full decode, and §3.4 promotion run in the `audio.validate` job (`backend/app/audio/`, `backend/app/modules/submissions/processing.py`); a `cleanup.quarantine` job then deletes the quarantine copy, and the `audio.analyze` job (§3.5) measures the original and sets the reviewer flags. Renditions and duplicate checks follow in later parts.
 
 **FFmpeg version:** 6.1 as packaged by Ubuntu 24.04 (`6.1.1-3ubuntu5` when this was written). CI installs the same package on an `ubuntu-24.04` runner, and the worker image must use it too. The exact `-version` line of `ffmpeg` and `ffprobe` is stored in `processing_runs.tool_versions` for every validation.
 
@@ -126,6 +126,14 @@ Parsed into `recordings.quality_metrics`:
 | `duration_ms` | full decode (`ffmpeg -f null`), not the ffprobe header: browser WebM files have no duration (Q-T1) | `too_short` if < 1 s |
 
 Flags are **advisory** signals for reviewers; they never auto-reject in the MVP (except `silent` + `too_short` which warn the contributor before upload where detectable client-side).
+
+As built (`backend/app/audio/quality.py`):
+
+- The filters run in one pass over the original, which is downloaded and checked against `sha256_original` first. `astats` runs after `aformat=sample_fmts=s16`, so a lossy recording, which decodes to floating point and can go past full scale, saturates and its clipped samples can be counted.
+- `clipping_ratio` is an estimate: `astats` "Peak count" divided by the number of samples, counted only when the peak reaches −0.1 dBFS. Lossy encoders smooth clipped peaks, so the ratio is lower for AAC and Opus than for the same sound in WAV (in tests, a heavily clipped tone gave about 0.7 as WAV and 0.01 as AAC); the 0.1 % threshold still flags both.
+- `true_peak_dbtp` is the `ebur128` true peak. Values of minus infinity (digital silence) are stored as `null`, and a `null` RMS also counts as `very_quiet`.
+- `too_short` uses `LKD_MIN_AUDIO_SECONDS` (default 1). The other thresholds are constants at the top of `quality.py`, to be tuned on pilot recordings: silence below −50 dB for at least 0.5 s, `silent` above 95 % silence, `very_quiet` below −45 dBFS RMS, `clipping` above 0.1 %.
+- Re-running `audio.analyze` replaces its own four flags and keeps flags set by other jobs (`possible_duplicate`). Silero VAD (`speech_ratio_vad`) is not built.
 
 ### 3.6 Renditions (`audio.renditions`)
 
