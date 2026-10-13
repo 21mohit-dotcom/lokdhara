@@ -64,7 +64,7 @@ flowchart LR
 - **How it runs:** against the local Docker Compose stack with synthetic data only, never against staging or production with real data.
 - **Acceptance criteria:** the script runs from a fresh clone with one command; results and the machine they ran on are recorded; any bottleneck found becomes an issue or an ADR before M8.
 
-## M4 — Audio and text validation pipeline *(in progress since 2026-10-12: validation, promotion to originals, and quality flags done)*
+## M4 — Audio and text validation pipeline *(in progress since 2026-10-12: validation, promotion to originals, quality flags, and derived copies done)*
 
 - **Deliverables:** worker jobs `audio.validate`, `audio.analyze`, `audio.renditions`, `audio.dedupe`, `text.derive`, `cleanup.quarantine`; promotion to originals; quality flags; text safety validation, NFC, script detection; admin failed-jobs page with retry.
 - **Dependencies:** M3.

@@ -24,7 +24,11 @@ MAX_BACKOFF = timedelta(hours=1)
 
 @dataclass(frozen=True)
 class JobContext:
-    """What a handler receives. `db` is committed together with the job's success."""
+    """What a handler receives. `db` is committed together with the job's success.
+
+    `run_id` is the ID this attempt's `processing_runs` row will get, so rows the handler
+    writes (renditions) can point to the run that made them.
+    """
 
     job_id: uuid.UUID
     job_type: str
@@ -33,6 +37,7 @@ class JobContext:
     target_id: uuid.UUID | None
     attempt: int
     db: Session
+    run_id: uuid.UUID
 
 
 @dataclass(frozen=True)
@@ -123,6 +128,7 @@ class ClaimedJob:
     target_id: uuid.UUID | None
     attempt: int
     max_attempts: int
+    run_id: uuid.UUID
 
 
 _CLAIM = text(
@@ -139,7 +145,8 @@ _CLAIM = text(
             ORDER BY run_after, id
             LIMIT 1
               FOR UPDATE SKIP LOCKED)
-    RETURNING id, job_type, payload, target_type, target_id, attempts, max_attempts
+    RETURNING id, job_type, payload, target_type, target_id, attempts, max_attempts,
+              uuidv7() AS run_id
     """
 )
 
@@ -160,6 +167,7 @@ def claim(engine: Engine, worker_id: str, lease_seconds: float) -> ClaimedJob | 
         target_id=row.target_id,
         attempt=row.attempts,
         max_attempts=row.max_attempts,
+        run_id=row.run_id,
     )
 
 
@@ -184,6 +192,7 @@ def _record_run(
 ) -> None:
     db.add(
         ProcessingRun(
+            id=job.run_id,
             job_id=job.id,
             job_type=job.job_type,
             target_type=job.target_type,
@@ -245,7 +254,14 @@ def process_one(engine: Engine, worker_id: str, lease_seconds: float) -> bool:
         return True
     with Session(engine, expire_on_commit=False) as db:
         context = JobContext(
-            job.id, job.job_type, job.payload, job.target_type, job.target_id, job.attempt, db
+            job.id,
+            job.job_type,
+            job.payload,
+            job.target_type,
+            job.target_id,
+            job.attempt,
+            db,
+            job.run_id,
         )
         try:
             result = run(context)
