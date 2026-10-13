@@ -164,7 +164,7 @@ Allowed `action` values match `review_events.action` in [DATABASE_SCHEMA.md](DAT
 | Method | Path | Auth | Purpose |
 |--------|------|------|---------|
 | GET | `/admin/jobs?status=failed&limit=50` | admin | Jobs by status (`queued`, `running`, `succeeded`, `failed`); payloads are not returned |
-| POST | `/admin/jobs/{id}/retry` | admin 🔒 | Re-queue a failed job (attempts reset); `409 job_not_failed` otherwise |
+| POST | `/admin/jobs/{id}/retry` | admin 🔒 | Re-queue a failed job (attempts reset); its submission goes back from `processing_failed` to `processing` once none of its checks is still failed; `409 job_not_failed` otherwise |
 | GET | `/admin/audit-events?target_type=&target_id=&actor=` | admin | Audit log |
 | POST | `/admin/consent-forms` | admin 🔒 | New form version |
 | GET | `/healthz` | public | Liveness |

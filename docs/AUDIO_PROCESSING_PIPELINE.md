@@ -2,7 +2,7 @@
 
 Status: **Proposed.** Commands below were smoke-tested with FFmpeg 6.1 on synthetic audio during planning (2026-10-11); exact flags and thresholds must be re-validated in Milestone 4 against real device recordings (Q-T1).
 
-Implementation status (Milestone 4, parts 1 to 4): §3.2 probe, §3.3 full decode, and §3.4 promotion run in the `audio.validate` job (`backend/app/audio/`, `backend/app/modules/submissions/processing.py`); a `cleanup.quarantine` job then deletes the quarantine copy, and the `audio.analyze` job (§3.5) measures the original and sets the reviewer flags; `audio.renditions` (§3.6) makes the derived copies; `audio.dedupe` (§3.7) flags and links duplicates.
+Implementation status (Milestone 4, parts 1 to 6): §3.2 probe, §3.3 full decode, and §3.4 promotion run in the `audio.validate` job (`backend/app/audio/`, `backend/app/modules/submissions/processing.py`); a `cleanup.quarantine` job then deletes the quarantine copy, and the `audio.analyze` job (§3.5) measures the original and sets the reviewer flags; `audio.renditions` (§3.6) makes the derived copies; `audio.dedupe` (§3.7) flags and links duplicates. Submissions move on as their jobs settle (§3.8).
 
 **FFmpeg version:** 6.1 as packaged by Ubuntu 24.04 (`6.1.1-3ubuntu5` when this was written). CI installs the same package on an `ubuntu-24.04` runner, and the worker image must use it too. The exact `-version` line of `ffmpeg` and `ffprobe` is stored in `processing_runs.tool_versions` for every validation.
 
@@ -182,6 +182,17 @@ As built (`backend/app/audio/duplicates.py`, `audio.dedupe`):
 - After max attempts: job `dead`, submission `processing_failed`, admin dashboard shows it. Re-queue is idempotent: renditions are keyed by `(recording_id, kind, params_sha256)` and overwritten only in `derived/`, never in `originals/`.
 - Worker crash mid-job: the job lock expires; the job is retried; partial derived files are written to a temp key and renamed only on success.
 - Temporary files live in a per-job temp directory deleted in a `finally` block; the container has a size-limited tmpfs.
+
+As built (M4):
+
+- A job that runs out of attempts, or fails in a way a retry cannot fix, is marked `failed` (the plan's "dead").
+- Whenever a job succeeds, fails for good, or is re-queued by an admin, the submission it belongs to is updated in the same transaction (`follow_processing` in `app/modules/submissions/service.py`). Only the latest job of each type for the submission and its recording counts, and `cleanup.quarantine` is ignored because it does not change what a reviewer sees:
+  - any failed → `processing_failed`;
+  - otherwise any queued or running → `processing`;
+  - otherwise → `awaiting_review`.
+- A submission already decided by validation (`rejected_invalid`) is left alone.
+- Admins see failed jobs on the app's **Failed checks** page (`/admin/jobs`) and can run each one again.
+- If updating the submission fails, the job counts as failed with `unexpected_error` and is retried, so a finished check is never lost.
 
 ## 4. Client-side (browser) responsibilities
 
