@@ -1,0 +1,67 @@
+# Runs the whole app on one computer for a demonstration (docs/DEMO.md).
+# Synthetic data only: never record real speakers into this demo.
+# Usage (from the repository root):
+#   docker compose -f infra/demo/docker-compose.yml up --build
+name: lokdhara-demo
+
+x-backend: &backend
+  build: ../../backend
+  environment:
+    LKD_ENV: development
+    LKD_BASE_URL: http://localhost:8080
+    LKD_SECRET_KEY: demo-only-not-secret
+    LKD_DATABASE_URL: postgresql+psycopg://lokdhara:lokdhara@db:5432/lokdhara
+    LKD_STORAGE_BACKEND: local
+    LKD_LOCAL_STORAGE_DIR: /data/storage
+  volumes:
+    - storage:/data
+  restart: unless-stopped
+
+services:
+  db:
+    image: postgres:18
+    environment:
+      POSTGRES_USER: lokdhara
+      POSTGRES_PASSWORD: lokdhara   # local-only credential; never reuse elsewhere
+      POSTGRES_DB: lokdhara
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lokdhara -d lokdhara"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  api:
+    <<: *backend
+    # Brings the database up to date, then serves the API.
+    command: ["sh", "-c", "alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  worker:
+    <<: *backend
+    command: ["python", "-m", "app.worker"]
+    depends_on:
+      api:
+        condition: service_healthy
+
+  web:
+    build: ../../frontend
+    ports:
+      - "127.0.0.1:8080:80"   # only this computer can open it
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  storage:
