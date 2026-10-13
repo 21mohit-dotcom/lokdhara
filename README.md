@@ -31,6 +31,10 @@ React + TypeScript + Vite (frontend) · Python + FastAPI (backend and audio work
 - Conventional Commits, small focused changes, feature branches.
 - Never commit recordings, personal data, consent documents, datasets, `.env` files, or credentials.
 
+## Live demo
+
+To show Lokdhara on a laptop with only Docker Desktop installed, follow [docs/DEMO.md](docs/DEMO.md).
+
 ## Development setup
 
 You need Git, Docker, Python 3.13 with [uv](https://docs.astral.sh/uv/), and Node.js 24.
