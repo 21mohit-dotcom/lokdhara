@@ -3,7 +3,8 @@
 `audio.validate` downloads the quarantined upload to a private temporary folder, probes and
 fully decodes it, and then either promotes it to originals (a verified byte-for-byte copy under
 the same key, ADR-009) or rejects it with a code. `cleanup.quarantine` then removes the
-quarantine copy. No database transaction stays open while files are copied or decoded.
+quarantine copy, and `audio.analyze` measures a promoted original and flags it for reviewers.
+No database transaction stays open while files are copied, decoded, or measured.
 """
 
 import hashlib
@@ -15,7 +16,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.audio import ffmpeg
+from app.audio import ffmpeg, quality
 from app.audio.validation import AudioInfo, Limits, Rejection, check_decode, check_probe
 from app.config import Settings, get_settings
 from app.modules.processing import queue
@@ -48,16 +49,23 @@ def _recording(db: Session, recording_id: uuid.UUID | None, *, lock: bool = Fals
     return recording
 
 
-def _download(store: ObjectStore, key: str, sha256: str, path: Path) -> None:
-    """Copies the quarantined upload to `path`, proving it is the file that was uploaded."""
+def _container(key: str) -> str:
+    container = PurePosixPath(key).suffix.lstrip(".")
+    if container not in ffmpeg.DEMUXERS:
+        raise JobError("unknown_container", retryable=False)
+    return container
+
+
+def _download(store: ObjectStore, bucket: Bucket, key: str, sha256: str, path: Path) -> None:
+    """Copies a stored recording to `path`, proving it is exactly the file that was uploaded."""
     digest = hashlib.sha256()
     try:
         with path.open("wb") as file:
-            for chunk in store.open(Bucket.QUARANTINE, key):
+            for chunk in store.open(bucket, key):
                 digest.update(chunk)
                 file.write(chunk)
     except ObjectNotFound as exc:
-        raise JobError("quarantine_missing", retryable=False) from exc
+        raise JobError(f"{bucket.value}_missing", retryable=False) from exc
     if digest.hexdigest() != sha256:
         raise JobError("checksum_mismatch", retryable=False)
 
@@ -98,14 +106,12 @@ def validate_recording(context: JobContext) -> JobResult:
     if recording.upload_status != "quarantined":  # already decided: re-running changes nothing
         return JobResult(output_summary={"skipped": recording.upload_status})
     key, sha256 = recording.original_object_key, recording.sha256_original
-    container = PurePosixPath(key).suffix.lstrip(".")
-    if container not in ffmpeg.DEMUXERS:
-        raise JobError("unknown_container", retryable=False)
+    container = _container(key)
     db.rollback()  # the slow part below must not hold a database connection
 
     with tempfile.TemporaryDirectory(prefix="lkd-job-") as folder:
         path = Path(folder) / "input"
-        _download(store, key, sha256, path)
+        _download(store, Bucket.QUARANTINE, key, sha256, path)
         found, verdict, duration_ms = _inspect(path, container, settings)
     if isinstance(verdict, AudioInfo):
         _promote(store, key, sha256)
@@ -124,6 +130,13 @@ def validate_recording(context: JobContext) -> JobResult:
         recording.is_lossy_source = verdict.is_lossy
         recording.upload_status = "promoted"
         summary = {"outcome": "promoted", "codec": verdict.codec, "duration_ms": duration_ms}
+        queue.enqueue(
+            db,
+            "audio.analyze",
+            target_type="recording",
+            target_id=recording.id,
+            dedupe_key=f"audio.analyze:{recording.id}",
+        )
     else:
         recording.upload_status = "rejected_invalid"
         recording.validation_errors = {"code": verdict.code, "reason": verdict.reason}
@@ -160,3 +173,48 @@ def remove_quarantine_copy(context: JobContext) -> JobResult:
         raise JobError("original_missing", retryable=False)
     store.delete(Bucket.QUARANTINE, key)
     return JobResult(output_summary={"deleted": True})
+
+
+@handler("audio.analyze")
+def analyze_recording(context: JobContext) -> JobResult:
+    """Measures the original and sets the reviewer flags. Re-running replaces both."""
+    settings, store, db = get_settings(), get_object_store(), context.db
+    recording = _recording(db, context.target_id)
+    if recording.upload_status != "promoted" or recording.duration_ms is None:
+        raise JobError("not_promoted", retryable=False)
+    key, sha256, duration_ms = (
+        recording.original_object_key,
+        recording.sha256_original,
+        recording.duration_ms,
+    )
+    container = _container(key)
+    db.rollback()
+
+    with tempfile.TemporaryDirectory(prefix="lkd-job-") as folder:
+        path = Path(folder) / "input"
+        _download(store, Bucket.ORIGINALS, key, sha256, path)  # also proves it is unchanged
+        try:
+            log = ffmpeg.analysis_log(
+                path, container, quality.FILTERS, timeout=settings.ffmpeg_timeout_seconds
+            )
+        except ffmpeg.FfmpegTimeout as exc:
+            raise JobError("ffmpeg_timeout", retryable=False) from exc
+        except ffmpeg.FfmpegFailed as exc:
+            raise JobError("analysis_failed", retryable=False) from exc
+    try:
+        metrics = quality.parse(log, duration_ms)
+    except ValueError as exc:
+        raise JobError("analysis_unreadable", retryable=False) from exc
+    found = quality.flags(metrics, duration_ms, settings.min_audio_seconds)
+
+    recording = _recording(db, context.target_id, lock=True)
+    recording.quality_metrics = metrics.as_json()
+    # Keep flags set by other jobs (possible_duplicate); replace this job's own.
+    recording.quality_flags = sorted(
+        (set(recording.quality_flags) - quality.ANALYSIS_FLAGS) | found
+    )
+    return JobResult(
+        output_summary={"flags": sorted(found)},
+        tool_versions=ffmpeg.versions(),
+        input_sha256=sha256,
+    )
