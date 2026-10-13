@@ -5,6 +5,7 @@ import { RequireAuth } from './auth/session'
 import { Layout } from './components/Layout'
 import { ChooseSpeakerPage } from './pages/ChooseSpeakerPage'
 import { ConsentPage } from './pages/ConsentPage'
+import { FailedJobsPage } from './pages/FailedJobsPage'
 import { HomePage } from './pages/HomePage'
 import { LoginPage } from './pages/LoginPage'
 import { MySubmissionsPage } from './pages/MySubmissionsPage'
@@ -25,6 +26,7 @@ export const routes: RouteObject[] = [
       { path: 'drafts/:draftId', element: signedIn(<NewSubmissionPage />) },
       { path: 'speakers/:speakerId/consent', element: signedIn(<ConsentPage />) },
       { path: 'submissions', element: signedIn(<MySubmissionsPage />) },
+      { path: 'admin/jobs', element: signedIn(<FailedJobsPage />) },
       { path: '*', element: <NotFoundPage /> },
     ],
   },

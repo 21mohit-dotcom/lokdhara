@@ -89,7 +89,7 @@ def test_valid_recordings_are_promoted_unchanged(
     key = recording.original_object_key
     assert object_store.sha256_of(Bucket.ORIGINALS, key) == recording.sha256_original
     assert object_store.head(Bucket.QUARANTINE, key) is None  # cleaned up
-    assert submission.status == "processing"  # more processing and the review follow
+    assert submission.status == "awaiting_review"  # every check has run
     assert recording.quality_metrics is not None
     assert recording.quality_metrics["silence_ratio"] == 0
     assert recording.quality_flags == []

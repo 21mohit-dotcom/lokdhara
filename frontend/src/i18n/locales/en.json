@@ -256,5 +256,17 @@
     "disallowed_character": "The text contains a hidden or unusual character that cannot be saved.",
     "submission_not_editable": "This submission can no longer be changed.",
     "validation_failed": "Some details are not valid. Please check them."
+  },
+  "jobs": {
+    "title": "Failed checks",
+    "intro": "Checks that stopped after their last attempt. Fix the cause first, then run them again. The original recording is never changed.",
+    "none": "No failed checks.",
+    "attempts": "Attempts: {{attempts}} of {{max}}",
+    "finished": "Stopped {{date}}",
+    "error": "Error: {{code}}",
+    "retry": "Run again",
+    "queued": "Queued again",
+    "adminOnly": "Only admins can see this page.",
+    "link": "Failed checks"
   }
 }
