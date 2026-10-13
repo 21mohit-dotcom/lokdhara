@@ -59,6 +59,7 @@ class Settings(BaseSettings):
     max_upload_bytes: int = Field(default=100 * 1024 * 1024, gt=0)
     uploads_per_user_per_hour: int = Field(default=60, gt=0)
     max_audio_seconds: float = Field(default=30 * 60, gt=0)
+    min_audio_seconds: float = Field(default=1, ge=0)  # shorter is flagged, not rejected
     max_audio_channels: int = Field(default=2, gt=0)
     min_sample_rate_hz: int = Field(default=8000, gt=0)
     max_sample_rate_hz: int = Field(default=96000, gt=0)
