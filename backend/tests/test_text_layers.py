@@ -78,7 +78,22 @@ def test_text_is_stored_exactly_as_written(
     assert stored is not None
     assert stored.content_original == written
     assert stored.content_nfc == "  क्‍ष é\nदूसरी पंक्ति  "
-    assert stored.detected_scripts == []  # filled by the text.derive job (M4)
+    assert stored.detected_scripts == ["Deva", "Latn"]
+    assert revision["detected_scripts"] == ["Deva", "Latn"]
+    assert layer["script_mismatch"] is False
+
+
+def test_a_script_other_than_the_chosen_one_is_a_warning_not_a_correction(
+    client: TestClient, text_draft: str
+) -> None:
+    layer = _created(_layer(client, text_draft, script_code="Deva", content="Johar"))
+    assert layer["current_revision"]["content"] == "Johar"
+    assert layer["current_revision"]["detected_scripts"] == ["Latn"]
+    assert (layer["script_code"], layer["script_mismatch"]) == ("Deva", True)
+
+    fixed = _revise(client, layer, "जोहार")
+    assert fixed.status_code == 201, fixed.text
+    assert fixed.json()["script_mismatch"] is False
 
 
 def test_text_submissions_can_be_submitted_once_they_have_text(

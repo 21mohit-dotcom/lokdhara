@@ -1,8 +1,8 @@
 """Text layers and their revisions (docs/TEXT_PROCESSING_PIPELINE.md, ADR-010, ADR-011).
 
 Every save is a new revision; nothing is edited in place. `content_original` is exactly what
-was sent once it passes the safety checks; `content_nfc` is derived next to it. Script detection
-and normalisation run later in the `text.derive` job (M4).
+was sent once it passes the safety checks; `content_nfc` and the detected scripts are derived next
+to it, because a saved revision never changes. Duplicate checks run later in `text.derive`.
 """
 
 import uuid
@@ -15,7 +15,7 @@ from app.modules.identity.service import AuthenticatedUser, utcnow
 from app.modules.submissions import service
 from app.modules.submissions.models import Recording, Submission, TextLayer, TextRevision
 from app.modules.submissions.schemas import RevisionCreateRequest, TextLayerCreateRequest
-from app.text import markup, normalize, safety
+from app.text import markup, normalize, safety, scripts
 
 # Which layer types each submission kind takes.
 _LAYERS_FOR_KIND = {
@@ -70,6 +70,7 @@ def _new_revision(
         source_revision_id=source_revision,
         content_original=content,
         content_nfc=normalize.to_nfc(content),
+        detected_scripts=scripts.detect(content),
         uncertainty_markup=markup.has_uncertainty(content),
         origin="human_contributor",
         author_user_id=author,

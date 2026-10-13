@@ -1,7 +1,10 @@
 """Job handlers. Importing this module registers every handler with the queue."""
 
 from app.modules.processing.queue import JobContext, JobResult, handler
-from app.modules.submissions import processing  # noqa: F401 - audio.*, cleanup.quarantine
+from app.modules.submissions import (
+    processing,  # noqa: F401 - audio.*, cleanup.quarantine
+    text_processing,  # noqa: F401 - text.derive
+)
 
 
 @handler("system.ping")
