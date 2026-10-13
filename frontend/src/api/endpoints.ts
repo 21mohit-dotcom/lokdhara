@@ -1,8 +1,9 @@
-/** One function per API call the contributor app makes. */
+/** One function per API call the app makes. */
 import { request } from './client'
 import type {
   ConsentAnswers,
   ConsentForm,
+  Job,
   Prompt,
   PromptType,
   Script,
@@ -71,3 +72,7 @@ export const createTextLayer = (submissionId: string, body: TextLayerCreate) =>
 
 export const submitSubmission = (id: string) =>
   request<Submission>('POST', `/submissions/${id}/submit`)
+
+export const listFailedJobs = () =>
+  request<{ items: Job[] }>('GET', '/admin/jobs?status=failed').then((r) => r.items)
+export const retryJob = (id: string) => request<Job>('POST', `/admin/jobs/${id}/retry`)

@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 
-import { useSession } from '../auth/session'
+import { hasRole, useSession } from '../auth/session'
 import { useDrafts } from '../drafts/DraftsProvider'
 
 export function HomePage() {
@@ -21,6 +21,11 @@ export function HomePage() {
           <span aria-hidden="true">📋</span> {t('home.mySubmissions')}
           {waiting > 0 && <span className="badge">{t('home.onDevice', { count: waiting })}</span>}
         </Link>
+        {hasRole(session, 'admin') && (
+          <Link to="/admin/jobs" className="action">
+            <span aria-hidden="true">🛠️</span> {t('jobs.link')}
+          </Link>
+        )}
       </div>
     </section>
   )

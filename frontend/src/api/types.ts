@@ -122,3 +122,17 @@ export interface TextLayerCreate {
   script_code: Script
   content: string
 }
+
+/** A background check, as admins see it (docs/API_SPECIFICATION.md §9). */
+export interface Job {
+  id: string
+  job_type: string
+  status: 'queued' | 'running' | 'succeeded' | 'failed'
+  attempts: number
+  max_attempts: number
+  target_type: string | null
+  target_id: string | null
+  last_error_code: string | null
+  created_at: string
+  finished_at: string | null
+}
