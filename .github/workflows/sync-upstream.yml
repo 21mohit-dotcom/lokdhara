@@ -1,0 +1,32 @@
+name: Auto-Sync from Upstream
+
+on:
+  schedule:
+    - cron: '0 */4 * * *'  # Runs automatically every 4 hours
+  workflow_dispatch:       # Allows 1-click manual sync anytime from GitHub
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Fetch and Merge from Ayush's repo
+        run: |
+          git remote add upstream https://github.com/AyushSoni3398/lokdhara.git
+          git fetch upstream main
+          git checkout main
+          git merge upstream/main --ff-only || git merge upstream/main -m "chore: sync latest changes from upstream"
+          git push origin main
