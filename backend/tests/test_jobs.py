@@ -144,6 +144,29 @@ def test_unexpected_errors_store_no_message(
     assert (run.error_code, run.error_detail) == ("unexpected_error", "RuntimeError")
 
 
+def test_handlers_know_the_id_of_their_run(
+    engine: Engine, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    seen = []
+
+    def remember(context: JobContext) -> JobResult:
+        seen.append(context.run_id)
+        if len(seen) == 1:
+            raise JobError("try_again")
+        return JobResult()
+
+    monkeypatch.setitem(queue._handlers, "audio.renditions", remember)
+    job_id = enqueue(db, "audio.renditions")
+    db.commit()
+    process_one(engine, "w1", LEASE)
+    db.execute(update(Job).where(Job.id == job_id).values(run_after=text("now()")))
+    db.commit()
+    process_one(engine, "w1", LEASE)
+
+    assert [run.id for run in _runs(db)] == seen
+    assert seen[0] != seen[1]  # each attempt has its own run
+
+
 def test_handler_writes_roll_back_on_failure(
     engine: Engine, db: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:
