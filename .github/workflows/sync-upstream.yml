@@ -20,8 +20,8 @@ jobs:
 
       - name: Configure Git
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "Mohit sharma"
+          git config user.email "mohitsharma21072005@gmail.com"
 
       - name: Fetch and Merge from Ayush's repo
         run: |
