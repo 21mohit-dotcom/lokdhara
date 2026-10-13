@@ -9,6 +9,7 @@ import uuid
 from dataclasses import dataclass
 
 from sqlalchemy import ColumnElement, and_, or_, select, true
+from sqlalchemy.dialects.postgresql import distinct_on
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -16,6 +17,7 @@ from app.errors import ApiError
 from app.modules.consents import service as consents
 from app.modules.identity.service import AuthenticatedUser, utcnow
 from app.modules.processing import queue
+from app.modules.processing.models import Job
 from app.modules.prompts import service as prompts
 from app.modules.speakers import service as speakers
 from app.modules.speakers.models import Speaker
@@ -327,3 +329,56 @@ def _add_prompt_text(db: Session, submission: Submission, recording: Recording) 
     db.flush()
     layer.current_revision_id = revision.id
     return True
+
+
+# ------------------------------------------------------------------ processing status
+
+# Housekeeping that does not change what a reviewer sees.
+_NOT_REVIEW_RELEVANT = ("cleanup.quarantine",)
+
+
+@queue.on_job_changed
+def follow_processing(db: Session, job: Job) -> None:
+    """Moves a submission on once its checks have settled (docs/DATA_LIFECYCLE.md stage 4):
+    to `awaiting_review` when every check succeeded, to `processing_failed` when one failed
+    for good, and back to `processing` when an admin queues the failed ones again."""
+    if job.job_type in _NOT_REVIEW_RELEVANT or job.target_id is None:
+        return
+    if job.target_type == "recording":
+        submission_id = db.scalar(
+            select(Recording.submission_id).where(Recording.id == job.target_id)
+        )
+    elif job.target_type == "submission":
+        submission_id = job.target_id
+    else:
+        return
+    submission = db.scalar(
+        select(Submission).where(Submission.id == submission_id).with_for_update()
+    )
+    # A rejected recording has already decided the submission (rejected_invalid).
+    if submission is None or submission.status not in ("processing", "processing_failed"):
+        return
+    recording_ids = [recording.id for recording in recordings_of(db, submission.id)]
+    # Only the latest job of each kind counts: a check that was run again replaces the old one.
+    latest = (
+        select(Job.status)
+        .where(
+            or_(
+                and_(Job.target_type == "submission", Job.target_id == submission.id),
+                and_(Job.target_type == "recording", Job.target_id.in_(recording_ids)),
+            ),
+            Job.job_type.not_in(_NOT_REVIEW_RELEVANT),
+        )
+        .ext(distinct_on(Job.job_type, Job.target_id))
+        .order_by(Job.job_type, Job.target_id, Job.id.desc())
+    )
+    states = set(db.scalars(latest))
+    if "failed" in states:
+        status = "processing_failed"
+    elif states & {"queued", "running"}:
+        status = "processing"
+    else:
+        status = "awaiting_review"
+    if status != submission.status:
+        submission.status = status
+        submission.updated_at = utcnow()

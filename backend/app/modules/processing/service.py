@@ -10,7 +10,7 @@ from app.modules.audit import service as audit
 from app.modules.audit.service import RequestContext
 from app.modules.identity.service import AuthenticatedUser
 from app.modules.processing.models import Job
-from app.modules.processing.queue import utcnow
+from app.modules.processing.queue import notify_changed, utcnow
 
 
 def list_jobs(db: Session, status: str, limit: int) -> list[Job]:
@@ -36,6 +36,8 @@ def retry_job(
     job.attempts = 0
     job.run_after = utcnow()
     job.finished_at = None
+    db.flush()
+    notify_changed(db, job.id)
     audit.record(
         db,
         action="job.retry",

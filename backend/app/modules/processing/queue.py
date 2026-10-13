@@ -60,6 +60,11 @@ class JobError(Exception):
 Handler = Callable[[JobContext], JobResult]
 _handlers: dict[str, Handler] = {}
 
+# Called with (db, job) in the transaction that settles a job: it succeeded, failed for good, or
+# an admin queued it again. The job row already shows its new status.
+Listener = Callable[[Session, Job], None]
+_listeners: list[Listener] = []
+
 
 def handler(job_type: str) -> Callable[[Handler], Handler]:
     """Registers the function that runs jobs of `job_type`."""
@@ -71,6 +76,20 @@ def handler(job_type: str) -> Callable[[Handler], Handler]:
         return func
 
     return register
+
+
+def on_job_changed(func: Listener) -> Listener:
+    """Registers a function that follows job outcomes, such as a submission's status."""
+    _listeners.append(func)
+    return func
+
+
+def notify_changed(db: Session, job_id: uuid.UUID) -> None:
+    job = db.get(Job, job_id, populate_existing=True)
+    if job is None:
+        return
+    for listener in _listeners:
+        listener(db, job)
 
 
 def utcnow() -> datetime:
@@ -225,7 +244,9 @@ def _fail(
             }
         else:
             values = {"status": "failed", "finished_at": utcnow(), "last_error_code": error.code}
-        db.execute(_release(job, worker_id, **values))
+        released = db.execute(_release(job, worker_id, **values))
+        if not retry and released.rowcount == 1:  # type: ignore[attr-defined]
+            notify_changed(db, job.id)
         db.commit()
     logger.warning(
         "job failed",
@@ -283,6 +304,13 @@ def process_one(engine: Engine, worker_id: str, lease_seconds: float) -> bool:
             # The lease expired and another worker took the job: discard this attempt's writes.
             db.rollback()
             logger.warning("job lease lost", extra={"job_id": str(job.id)})
+            return True
+        try:
+            notify_changed(db, job.id)
+        except Exception as error:
+            db.rollback()
+            unexpected = JobError("unexpected_error", type(error).__name__)
+            _fail(engine, job, worker_id, started_at, unexpected)
             return True
         db.commit()
     logger.info(
