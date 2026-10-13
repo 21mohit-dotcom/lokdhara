@@ -13,6 +13,7 @@ dependencies = [
     "psycopg[binary]>=3.3.6",
     "pydantic-settings>=2.15.0",
     "python-multipart>=0.0.32",
+    "regex>=2026.9.29",
     "sqlalchemy>=2.1.4",
     "uvicorn[standard]>=0.54.0",
 ]
@@ -25,6 +26,7 @@ dev = [
     "mypy>=2.4.0",
     "pytest>=9.1.1",
     "ruff>=0.17.0",
+    "types-regex>=2026.9.29.20261005",
 ]
 loadtest = [
     "locust>=2.46.7",
