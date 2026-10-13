@@ -22,6 +22,7 @@ from app.modules.speakers.models import Speaker
 from app.modules.submissions.models import Recording, Submission, TextLayer, TextRevision
 from app.modules.submissions.schemas import SubmissionCreateRequest, SubmissionUpdateRequest
 from app.object_store import Bucket, ObjectStore
+from app.text import scripts
 from app.text.normalize import to_nfc
 
 EDITABLE_STATUSES = ("draft", "changes_requested")
@@ -319,6 +320,7 @@ def _add_prompt_text(db: Session, submission: Submission, recording: Recording) 
         revision_number=1,
         content_original=prompt.text,
         content_nfc=to_nfc(prompt.text),
+        detected_scripts=scripts.detect(prompt.text),
         origin="prompt_text",
     )
     db.add(revision)

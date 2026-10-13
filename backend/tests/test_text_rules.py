@@ -101,3 +101,16 @@ def test_nfc_uses_lf_line_endings() -> None:
 )
 def test_uncertainty_markup(text: str, uncertain: bool) -> None:
     assert markup.has_uncertainty(text) is uncertain
+
+
+@pytest.mark.parametrize(
+    ("nfc", "key"),
+    [
+        ("  जोहार  दिसुम ", "जोहार दिसुम"),
+        ("a\t\u00a0b", "a b"),
+        ("first line\nsecond line\n", "first line\nsecond line"),  # line breaks stay
+        ("क्‍ष", "क्‍ष"),
+    ],
+)
+def test_search_key_collapses_spaces_only(nfc: str, key: str) -> None:
+    assert normalize.search_key(nfc) == key

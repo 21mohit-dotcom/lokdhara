@@ -158,6 +158,7 @@ class RevisionOut(BaseModel):
     origin: str
     based_on_revision_id: uuid.UUID | None
     source_revision_id: uuid.UUID | None
+    detected_scripts: list[str]
     uncertainty_markup: bool
     verification_status: str
     change_note: str | None
@@ -180,6 +181,8 @@ class TextLayerOut(BaseModel):
     current_revision: RevisionOut | None
     # Translations only: the source text has a newer revision than the one translated.
     source_changed: bool
+    # The script chosen for the layer does not appear in its current text: a warning only.
+    script_mismatch: bool
 
 
 class SubmissionOut(BaseModel):

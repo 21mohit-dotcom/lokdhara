@@ -29,6 +29,7 @@ from app.modules.submissions.schemas import (
     UploadOut,
 )
 from app.object_store import ObjectStore, get_object_store
+from app.text import scripts
 
 router = APIRouter(tags=["submissions"])
 
@@ -54,12 +55,14 @@ def _revision_out(revision: TextRevision) -> RevisionOut:
 
 
 def _layer_out(view: service.LayerView) -> TextLayerOut:
-    computed = {"current_revision", "source_changed"}
+    computed = {"current_revision", "source_changed", "script_mismatch"}
     fields = {f: getattr(view.layer, f) for f in TextLayerOut.model_fields if f not in computed}
     return TextLayerOut(
         **fields,
         current_revision=_revision_out(view.current) if view.current else None,
         source_changed=view.source_changed,
+        script_mismatch=view.current is not None
+        and scripts.mismatch(view.layer.script_code, view.current.detected_scripts),
     )
 
 
