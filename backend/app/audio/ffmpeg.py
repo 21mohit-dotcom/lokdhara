@@ -194,3 +194,27 @@ def analysis_log(path: Path, container: str, filters: str, *, timeout: float) ->
     if result.returncode != 0:
         raise FfmpegFailed(container)
     return result.stderr.decode("utf-8", "replace")
+
+
+def convert(
+    path: Path, container: str, output_args: tuple[str, ...], out: Path, *, timeout: float
+) -> None:
+    """Writes a derived file from the first audio stream. The input file is only read."""
+    result = _run(
+        [
+            "ffmpeg",
+            "-nostdin",
+            "-hide_banner",
+            "-v",
+            "error",
+            "-y",
+            *_input(container, path),
+            "-map",
+            "0:a:0",
+            *output_args,
+            str(out),
+        ],
+        timeout,
+    )
+    if result.returncode != 0:
+        raise FfmpegFailed(container)
