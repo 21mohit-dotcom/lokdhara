@@ -2,7 +2,7 @@
 
 Status: **Proposed.** Applies to standalone Mundari text, transcriptions, and translations.
 
-Implementation status (Milestone 3): §2 safety checks, §3 NFC, and the §8 uncertainty flag are pure functions in `backend/app/text/`, applied when a revision is saved. §5 script detection and §10 duplicate checks run in the `text.derive` job (M4); §6 waits for a policy (Q-X2).
+Implementation status (Milestone 4): §2 safety checks, §3 NFC, §5 script detection, and the §8 uncertainty flag are pure functions in `backend/app/text/`, applied when a revision is saved. The exact duplicate check of §10 runs in the `text.derive` job; near duplicates (`pg_trgm`) come with the review screens (M6); §6 waits for a policy (Q-X2).
 
 ## 0. Principles
 
@@ -58,6 +58,14 @@ In a search key (not stored as a revision field): collapse runs of spaces/tabs t
 - Mixed-script text (e.g., Mundari in Devanagari with English loanwords in Latin) is normal; `Zyyy` is used only when no dominant script applies.
 - Language identification by model is **not** used in MVP (no reliable Mundari LID is assumed).
 
+As built (M4, `app/text/scripts.py`):
+
+- Detection runs when a revision is saved, not in the worker, because revisions are append-only and `detected_scripts` could not be filled in later.
+- Letters are counted with the `regex` package's Unicode script property. Digits, punctuation, spaces, ZWJ/ZWNJ, and combining marks shared by several scripts (Unicode scripts Common and Inherited) are not counted. Devanagari digits do count as Devanagari.
+- Markup tags such as `[inaudible]` are ignored, but the words inside `[?…]` and `[hi: …]` are counted.
+- `detected_scripts` lists the most used script first. Letters in any script other than `Deva`, `Latn`, `Nagm`, `Beng`, or `Orya` are counted as `Zyyy`.
+- A layer shows `script_mismatch` when its declared script does not appear in its current text at all. A declared `Zyyy`, or text with no letters, never counts as a mismatch.
+
 ## 6. Policy normalisation (`content_normalized`) — deferred
 
 A normalisation policy (e.g., mapping common variant spellings, nukta usage, or Latin diacritic conventions) can only be written by linguists with community input (Q-X2). When one exists:
@@ -99,6 +107,7 @@ Until linguists define conventions (Q-X3), the proposed minimal markup is:
 ## 10. Duplicate detection (text)
 
 - Exact: same `content_nfc` (whitespace-cleaned) for the same language and layer type → `possible_duplicate` flag.
+- As built (M4, `text.derive`): only **standalone** text is compared, in the same language, using the current revision's `content_nfc` with runs of spaces, tabs, and no-break spaces collapsed and the ends trimmed (`normalize.search_key`, computed the same way in SQL). Transcriptions and translations are left out: read-speech transcriptions of one prompt, and translations of short phrases, are expected to match. Matches against other submitted (not draft or withdrawn) submissions are linked in `related_items` as `possible_duplicate`, at most 50 per run. Nothing is merged or hidden.
 - Near: trigram similarity (`pg_trgm`, threshold tuned in pilot) shown to reviewers as "similar entries". Common for vocabulary items; duplicates of a *word* from different speakers are **valuable variation**, so near-duplicates are informational only.
 
 ## 11. Version tracking
