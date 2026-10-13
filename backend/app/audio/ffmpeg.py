@@ -160,3 +160,37 @@ def versions() -> dict[str, str]:
         output = _run([tool, "-version"], timeout=30).stdout.decode("utf-8", "replace")
         found[tool] = output.splitlines()[0] if output else "unknown"
     return found
+
+
+class FfmpegFailed(Exception):
+    """FFmpeg exited with an error on a file that had already passed validation."""
+
+
+def analysis_log(path: Path, container: str, filters: str, *, timeout: float) -> str:
+    """Runs measuring filters over the first audio stream and returns FFmpeg's log.
+
+    The log also repeats the file's own metadata tags, which may contain names: callers parse
+    numbers out of it and must never store or log it.
+    """
+    result = _run(
+        [
+            "ffmpeg",
+            "-nostdin",
+            "-hide_banner",
+            "-nostats",
+            "-v",
+            "info",
+            *_input(container, path),
+            "-map",
+            "0:a:0",
+            "-af",
+            filters,
+            "-f",
+            "null",
+            "-",
+        ],
+        timeout,
+    )
+    if result.returncode != 0:
+        raise FfmpegFailed(container)
+    return result.stderr.decode("utf-8", "replace")
