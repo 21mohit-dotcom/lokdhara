@@ -75,7 +75,7 @@ These are assumptions the plan currently relies on. Each one can change the desi
 | ID | Question | How it gets answered | Impact |
 |----|----------|----------------------|--------|
 | Q-T1 | Which recording formats do target phones' browsers actually produce, and do they decode reliably with ffmpeg? | Spike in M1 on real devices | **Answered for Android Chrome** (see §2.1); iOS Safari still untested |
-| Q-T2 | Is Opus playback reliable on all target browsers (notably iOS Safari), or is an AAC fallback needed? | Spike in M4 | Blocks M4 |
+| Q-T2 | Is Opus playback reliable on all target browsers (notably iOS Safari), or is an AAC fallback needed? | Spike in M4 | Unblocked 2026-10-13: an AAC copy (`playback_aac`) is made for every recording, so playback works without Opus. Still to check on an iPhone whether Opus alone would do. |
 | Q-T3 | Are proposed upload limits (100 MB / 30 min) right for field recordings? | Pilot feedback | Later |
 | Q-T4 | Which object-storage provider meets cost and residency needs? | Compare after Q-L7 | Blocks M8 |
 | Q-T5 | Does near-duplicate audio detection (e.g., Chromaprint) work usefully on speech? | Experiment in M4 | Later |

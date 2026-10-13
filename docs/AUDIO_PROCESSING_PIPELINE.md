@@ -2,7 +2,7 @@
 
 Status: **Proposed.** Commands below were smoke-tested with FFmpeg 6.1 on synthetic audio during planning (2026-10-11); exact flags and thresholds must be re-validated in Milestone 4 against real device recordings (Q-T1).
 
-Implementation status (Milestone 4, parts 1 and 2): §3.2 probe, §3.3 full decode, and §3.4 promotion run in the `audio.validate` job (`backend/app/audio/`, `backend/app/modules/submissions/processing.py`); a `cleanup.quarantine` job then deletes the quarantine copy, and the `audio.analyze` job (§3.5) measures the original and sets the reviewer flags. Renditions and duplicate checks follow in later parts.
+Implementation status (Milestone 4, parts 1 to 3): §3.2 probe, §3.3 full decode, and §3.4 promotion run in the `audio.validate` job (`backend/app/audio/`, `backend/app/modules/submissions/processing.py`); a `cleanup.quarantine` job then deletes the quarantine copy, and the `audio.analyze` job (§3.5) measures the original and sets the reviewer flags; `audio.renditions` (§3.6) makes the derived copies. Duplicate checks follow in a later part.
 
 **FFmpeg version:** 6.1 as packaged by Ubuntu 24.04 (`6.1.1-3ubuntu5` when this was written). CI installs the same package on an `ubuntu-24.04` runner, and the worker image must use it too. The exact `-version` line of `ffmpeg` and `ffprobe` is stored in `processing_runs.tool_versions` for every validation.
 
@@ -149,6 +149,14 @@ Notes:
 - **Lossy sources stay lossy.** Converting an Opus or MP3 original to FLAC does not restore quality; `is_lossy_source` is exported so researchers can filter.
 - No loudness normalisation is applied to the analysis rendition (keeps signal comparable to the original). The playback rendition may apply `loudnorm` for listening comfort; this is recorded in `params`.
 - Opus playback on iOS Safari must be verified (Q-T2); AAC-LC 48 kbit/s M4A is the fallback rendition (`playback_aac`, allowed by the schema since migration `0006`).
+
+As built (`backend/app/audio/renditions.py`):
+
+- Every promoted recording gets all four: `analysis_flac_16k_mono`, `playback_opus` (WebM, 24 kbit/s), `playback_aac` (M4A, 48 kbit/s, made for every recording until Q-T2 is settled), and `waveform_peaks`. They are stored in the `derived` bucket next to the original's key, as `{yyyy}/{mm}/{recording_id}/{kind}-{first 16 characters of params_sha256}.{ext}`.
+- `params` holds the exact FFmpeg output arguments and a format version; `params_sha256` is the hash of that JSON. A re-run skips kinds that already exist with the same hash, and a changed recipe adds a new rendition beside the old one (rows are append-only).
+- Derived files never carry the original's tags or chapters (`-map_metadata -1 -map_chapters -1`), which can hold names, and are written with `-fflags +bitexact`, so the same original gives byte-identical files.
+- The waveform is decoded to 16 kHz mono 16-bit samples and stored as `{"version": 1, "peaks_per_second": 20, "peaks": [...]}`, each peak a whole percentage of full scale (about 100 KB for a 30-minute recording).
+- Each row records the FFmpeg version and the `processing_runs` row of the attempt that made it: the queue gives every attempt its run ID up front (`JobContext.run_id`).
 
 ### 3.7 Duplicate detection (`audio.dedupe`)
 
