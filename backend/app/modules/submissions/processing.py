@@ -3,7 +3,8 @@
 `audio.validate` downloads the quarantined upload to a private temporary folder, probes and
 fully decodes it, and then either promotes it to originals (a verified byte-for-byte copy under
 the same key, ADR-009) or rejects it with a code. `cleanup.quarantine` then removes the
-quarantine copy, and `audio.analyze` measures a promoted original and flags it for reviewers.
+quarantine copy, `audio.analyze` measures a promoted original and flags it for reviewers, and
+`audio.renditions` makes the derived listening and research copies.
 No database transaction stays open while files are copied, decoded, or measured.
 """
 
@@ -16,12 +17,12 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.audio import ffmpeg, quality
+from app.audio import ffmpeg, quality, renditions
 from app.audio.validation import AudioInfo, Limits, Rejection, check_decode, check_probe
 from app.config import Settings, get_settings
 from app.modules.processing import queue
 from app.modules.processing.queue import JobContext, JobError, JobResult, handler, utcnow
-from app.modules.submissions.models import Recording, Submission
+from app.modules.submissions.models import Recording, Rendition, Submission
 from app.object_store import (
     Bucket,
     IntegrityError,
@@ -130,13 +131,14 @@ def validate_recording(context: JobContext) -> JobResult:
         recording.is_lossy_source = verdict.is_lossy
         recording.upload_status = "promoted"
         summary = {"outcome": "promoted", "codec": verdict.codec, "duration_ms": duration_ms}
-        queue.enqueue(
-            db,
-            "audio.analyze",
-            target_type="recording",
-            target_id=recording.id,
-            dedupe_key=f"audio.analyze:{recording.id}",
-        )
+        for job_type in ("audio.analyze", "audio.renditions"):
+            queue.enqueue(
+                db,
+                job_type,
+                target_type="recording",
+                target_id=recording.id,
+                dedupe_key=f"{job_type}:{recording.id}",
+            )
     else:
         recording.upload_status = "rejected_invalid"
         recording.validation_errors = {"code": verdict.code, "reason": verdict.reason}
@@ -216,5 +218,82 @@ def analyze_recording(context: JobContext) -> JobResult:
     return JobResult(
         output_summary={"flags": sorted(found)},
         tool_versions=ffmpeg.versions(),
+        input_sha256=sha256,
+    )
+
+
+def _store_file(store: ObjectStore, path: Path, key: str, content_type: str) -> tuple[str, int]:
+    with path.open("rb") as file:
+        stored = store.put(Bucket.DERIVED, key, file, content_type=content_type)
+    return stored.sha256, stored.size_bytes
+
+
+@handler("audio.renditions")
+def make_renditions(context: JobContext) -> JobResult:
+    """Makes the playback, analysis, and waveform files a recording does not have yet.
+
+    Derived files are written under new keys and recorded as append-only rows; re-running
+    skips kinds that already exist with the same parameters. The original is only read.
+    """
+    settings, store, db = get_settings(), get_object_store(), context.db
+    recording = _recording(db, context.target_id)
+    if recording.upload_status != "promoted":
+        raise JobError("not_promoted", retryable=False)
+    key, sha256 = recording.original_object_key, recording.sha256_original
+    container = _container(key)
+    existing = {
+        (kind, params_sha256)
+        for kind, params_sha256 in db.execute(
+            select(Rendition.kind, Rendition.params_sha256).where(
+                Rendition.recording_id == recording.id
+            )
+        )
+    }
+    wanted = [
+        kind
+        for kind in (*renditions.AUDIO_KINDS, renditions.WAVEFORM)
+        if (kind.name, kind.params_sha256) not in existing
+    ]
+    if not wanted:
+        return JobResult(output_summary={"made": []})
+    db.rollback()
+
+    made: list[tuple[renditions.Kind, str, str, int]] = []
+    timeout = settings.ffmpeg_timeout_seconds
+    with tempfile.TemporaryDirectory(prefix="lkd-job-") as folder:
+        source = Path(folder) / "input"
+        _download(store, Bucket.ORIGINALS, key, sha256, source)
+        for kind in wanted:
+            out = Path(folder) / kind.name
+            try:
+                ffmpeg.convert(source, container, kind.output_args, out, timeout=timeout)
+            except ffmpeg.FfmpegTimeout as exc:
+                raise JobError("ffmpeg_timeout", retryable=False) from exc
+            except ffmpeg.FfmpegFailed as exc:
+                raise JobError("rendition_failed", kind.name, retryable=False) from exc
+            if kind is renditions.WAVEFORM:
+                out.write_bytes(renditions.waveform(out))
+            derived = renditions.derived_key(key, kind)
+            made.append((kind, derived, *_store_file(store, out, derived, kind.content_type)))
+
+    versions = ffmpeg.versions()
+    for kind, derived, file_sha256, size in made:
+        # Added, not inserted at once: the run row it points to is written with the job's result.
+        db.add(
+            Rendition(
+                recording_id=context.target_id,
+                kind=kind.name,
+                object_key=derived,
+                sha256=file_sha256,
+                size_bytes=size,
+                params=kind.params,
+                params_sha256=kind.params_sha256,
+                tool_versions=versions,
+                processing_run_id=context.run_id,
+            )
+        )
+    return JobResult(
+        output_summary={"made": [kind.name for kind, *_ in made]},
+        tool_versions=versions,
         input_sha256=sha256,
     )
