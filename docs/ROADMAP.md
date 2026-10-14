@@ -4,7 +4,7 @@ Status: **Approved by Ayush Soni (project owner) on 2026-10-11.** M0, M1, and M2
 
 ## Approach
 
-Build a **thin, secure vertical slice** first (one audio submission travels from browser → storage → review → approved), then widen. Each milestone ends with a working, tested system, not a pile of half-finished layers.
+Build a **thin, secure vertical slice** first (one audio submission travels from browser → storage → automatic checks → accepted), then widen. Each milestone ends with a working, tested system, not a pile of half-finished layers.
 
 No calendar dates are given: pacing depends on team size and semester load (assumption A4). As a rough planning aid for 2–4 part-time students, most milestones are 1–3 weeks of work; treat that as a guess to be replaced by measured velocity after M1.
 
@@ -16,7 +16,7 @@ flowchart LR
     M3 --> L3[Load test]
     L3 --> M4[M4 Validation pipeline]
     M4 --> M5[M5 Transcripts + translations]
-    M5 --> M6[M6 Review workflow]
+    M5 --> M6[M6 Reports + catalogue]
     M6 --> M7[M7 Datasets + export]
     M7 --> M8[M8 Hardening + pilot]
     G{{Governance answers<br/>Blocks pilot}} -.-> M8
@@ -59,7 +59,7 @@ flowchart LR
 
 ## Load test of the submission flow (after M3, requested by the owner on 2026-10-12) *(first run done 2026-10-12, see [LOAD_TESTING.md](LOAD_TESTING.md); the worker part waits for M4's audio handlers)*
 
-- **Deliverables:** a [Locust](https://locust.io/) script in `backend/loadtest/` (development dependency only; it sends nothing outside the machine) that simulates about 50 contributors signing in, creating drafts, and uploading **synthetic, generated** audio; a reviewer browsing scenario is added once the M6 review queue exists. Results go in a short `docs/LOAD_TESTING.md`: requests per second, slowest responses, and the point where the worker queue falls behind.
+- **Deliverables:** a [Locust](https://locust.io/) script in `backend/loadtest/` (development dependency only; it sends nothing outside the machine) that simulates about 50 contributors signing in, creating drafts, and uploading **synthetic, generated** audio; a researcher catalogue scenario is added once M6 exists. Results go in a short `docs/LOAD_TESTING.md`: requests per second, slowest responses, and the point where the worker queue falls behind.
 - **Dependencies:** M3 (uploads into quarantine); synthetic accounts, which the script creates in its own `lokdhara_loadtest` database.
 - **How it runs:** against the local Docker Compose stack with synthetic data only, never against staging or production with real data.
 - **Acceptance criteria:** the script runs from a fresh clone with one command; results and the machine they ran on are recorded; any bottleneck found becomes an issue or an ADR before M8.
@@ -76,21 +76,23 @@ flowchart LR
 
 - **Deliverables:** text layers (transcription, translation, standalone); revisions with provenance; optimistic concurrency; diff view; uncertainty markup parser; stale-translation indicator; multi-script input support (Devanagari, Latin, Nag Mundari if Q-X4 confirms) with font check (Q-T6).
 - **Dependencies:** M4; Q-X3 conventions (provisional acceptable).
-- **Acceptance criteria:** contributor and reviewer revisions are append-only and attributed; concurrent edit returns 409; a translation is marked stale when the source is revised.
+- **Acceptance criteria:** contributor and admin revisions are append-only and attributed; concurrent edit returns 409; a translation is marked stale when the source is revised.
 - **Tests:** revision integrity, concurrency, markup parser, script detection on all supported scripts.
 
-## M6 — Reviewer dashboard and approval workflow
+## M6 — Reports, admin hiding, and the researcher catalogue
 
-- **Deliverables:** review queue with filters; playback via signed URLs; waveform; approve/reject/request-changes/restrict; verification of revisions; restriction flags including `culturally_restricted` scope; contributor notifications in-app; researcher catalogue search with effective-access filtering.
-- **Dependencies:** M5; Q-G3 (restricted categories), Q-P3 (reviewers).
-- **Acceptance criteria:** full permission matrix test passes for Python and SQL implementations; reviewer cannot act on own submission; every decision audited.
-- **Tests:** table-driven permission suite; state-machine transition tests; Playwright reviewer flow.
+Shrunk on 2026-10-14: the professor decided there is no human reviewer ([ADR-021](ARCHITECTURE_DECISIONS.md#adr-021--no-human-reviewer-accept-after-automatic-checks-keep-text-unverified)). Submissions are already `accepted` automatically at the end of M4, so the review queue, approve/reject/request-changes screens and reviewer verification of text are dropped.
+
+- **Deliverables:** a "Report" button on items (reasons: personal information, a third party's voice, culturally restricted, wrong content); an admin reports page to hide an item (restriction flag, including `culturally_restricted` scope) or dismiss the report, with a reason; contributors see when their item was hidden; researcher catalogue search with playback via signed URLs, quality signals, the unverified label, and effective-access filtering.
+- **Dependencies:** M5; Q-G3 (restricted categories).
+- **Acceptance criteria:** full permission matrix test passes for Python and SQL implementations; a hidden item disappears from the catalogue and from release previews; every report decision is audited; nothing in the catalogue calls contributor text "verified".
+- **Tests:** table-driven permission suite; report and hide tests; Playwright report-to-hide flow.
 
 ## M7 — Dataset export, quality checks, and versioning
 
 - **Deliverables:** draft/preview/freeze/retract releases; pre-freeze checks D1–D9; deterministic export builder with manifest, data card, checksums; export request/approval; withdrawal workflow end-to-end (restrict, release annotation, PATCH preview, deletion routine with `app_erasure` role).
 - **Dependencies:** M6; Q-L5 licence and Q-G5 data-use agreement needed before any *external* release (internal releases can be tested with synthetic data).
-- **Acceptance criteria:** rebuilding an export gives identical checksums; withdrawn item cannot appear in any new release; export contains only allow-listed fields.
+- **Acceptance criteria:** rebuilding an export gives identical checksums; withdrawn or hidden item cannot appear in any new release; the data card states that transcriptions are contributor-provided and unverified; export contains only allow-listed fields.
 - **Tests:** export snapshot test; withdrawal propagation tests; pre-freeze check tests.
 
 ## M8 — Testing, security review, deployment, and pilot collection
@@ -104,7 +106,7 @@ flowchart LR
 
 ## Post-MVP candidates (not scheduled)
 
-Time-aligned segmentation; resumable uploads (tus or S3 multipart); Mundari UI translation; two-reviewer consensus; lexicon module; ASR/MT suggestion evaluation on a reviewed test set (ADR-014); public release site (after governance approval); offline-first PWA sync.
+Time-aligned segmentation; resumable uploads (tus or S3 multipart); Mundari UI translation; peer checking of clips and text by other contributors (as in Mozilla Common Voice) or reviewers if any become available (ADR-021); lexicon module; ASR/MT suggestion evaluation on a checked test set (ADR-014); public release site (after governance approval); offline-first PWA sync.
 
 ## Team capacity notes
 
