@@ -20,6 +20,7 @@ SubmissionStatus = Literal[
     "processing",
     "processing_failed",
     "rejected_invalid",
+    "accepted",
     "awaiting_review",
     "in_review",
     "changes_requested",

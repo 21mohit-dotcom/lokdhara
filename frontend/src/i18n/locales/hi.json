@@ -217,6 +217,7 @@
     "processing": "जाँच हो रही है",
     "processing_failed": "जाँच नहीं हो सकी, टीम देखेगी",
     "rejected_invalid": "फ़ाइल उपयोग नहीं हो सकी",
+    "accepted": "स्वीकार किया गया",
     "awaiting_review": "समीक्षा की प्रतीक्षा में",
     "in_review": "समीक्षा में",
     "changes_requested": "बदलाव माँगे गए",

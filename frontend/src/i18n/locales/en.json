@@ -217,6 +217,7 @@
     "processing": "Being checked",
     "processing_failed": "Check failed, the team will look at it",
     "rejected_invalid": "File could not be used",
+    "accepted": "Accepted",
     "awaiting_review": "Waiting for review",
     "in_review": "In review",
     "changes_requested": "Changes requested",

@@ -55,26 +55,20 @@ stateDiagram-v2
     draft --> uploading: submit
     uploading --> processing: upload complete
     uploading --> draft: upload failed (client keeps draft)
-    processing --> awaiting_review: validation ok
+    processing --> accepted: every check ok
     processing --> rejected_invalid: validation failed
     processing --> processing_failed: job dead after retries
     processing_failed --> processing: admin re-queue
-    awaiting_review --> in_review: reviewer opens
-    in_review --> approved
-    in_review --> changes_requested
-    in_review --> rejected
-    changes_requested --> processing: contributor resubmits
-    approved --> in_review: reopened by reviewer/admin
     draft --> withdrawn
-    awaiting_review --> withdrawn
-    approved --> withdrawn
-    rejected --> withdrawn
+    accepted --> withdrawn
     withdrawn --> [*]
 ```
 
+There is no human review step ([ADR-021](ARCHITECTURE_DECISIONS.md#adr-021--no-human-reviewer-accept-after-automatic-checks-keep-text-unverified)). The statuses `awaiting_review`, `in_review`, `changes_requested`, `approved` and `rejected` are still allowed by the database but unused, kept for later peer checking. An admin hides a reported item with a restriction flag, not a status.
+
 `uploading` happens on the device: the server keeps a submission in `draft` while its recording uploads, and `submit` moves it straight to `processing` (docs/API_SPECIFICATION.md §4).
 
-Restriction (`sensitive`, `third_party_voice`, `contains_pii`, `culturally_restricted`) is a **separate flag set**, not a state, because an approved item can also be restricted.
+Restriction (`sensitive`, `third_party_voice`, `contains_pii`, `culturally_restricted`) is a **separate flag set**, not a state, because an accepted item can also be restricted (hidden).
 
 ## 4. Effective access computation
 
@@ -125,7 +119,7 @@ flowchart LR
     P --> J2[job: audio.analyze<br/>astats, ebur128, silencedetect]
     P --> J3[job: audio.renditions<br/>playback Opus, analysis FLAC 16k mono]
     P --> J4[job: audio.dedupe<br/>hash match]
-    J2 --> R[awaiting_review]
+    J2 --> R[accepted]
     J3 --> R
     J4 --> R
 ```

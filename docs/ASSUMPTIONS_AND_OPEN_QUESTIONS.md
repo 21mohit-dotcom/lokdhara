@@ -11,7 +11,7 @@ These are assumptions the plan currently relies on. Each one can change the desi
 | ID | Assumption | If wrong, what changes |
 |----|------------|------------------------|
 | A1 | Most early contributions come through facilitators, not unaided self-service. | If self-service dominates, invest more in simplified onboarding and in-app audio guidance. |
-| A2 | Contributors mainly use Android phones with Chrome; reviewers use laptops. | iOS/Safari audio recording formats need extra testing (Safari's MediaRecorder output differs). |
+| A2 | Contributors mainly use Android phones with Chrome; admins and researchers use laptops. | iOS/Safari audio recording formats need extra testing (Safari's MediaRecorder output differs). |
 | A3 | Pilot volume is small: tens of speakers, tens to low hundreds of hours of audio in year one. | Storage and processing estimates in [INFRASTRUCTURE_AND_COSTS.md](INFRASTRUCTURE_AND_COSTS.md) scale linearly; architecture holds to at least 10× this. |
 | A4 | The team is 2–5 students with Python and JavaScript experience, part-time. | Larger/smaller team changes milestone pacing, not architecture. |
 | A5 | Mundari is written in Devanagari, Latin, and Nag Mundari (Mundari Bani) scripts, and possibly Bengali or Odia script in some areas; no single orthography is universally accepted. | If the community/supervisor mandates one orthography, add a validation profile; never drop the original text. |
@@ -66,7 +66,7 @@ These are assumptions the plan currently relies on. Each one can change the desi
 |----|----------|-------------|--------|--------|
 | Q-P1 | Can we run 3–5 short sessions with real contributors/facilitators to validate personas and flows before M3 UI work? | Ayush + professor | Blocks M3 | — |
 | Q-P2 | What pilot success targets (speakers, hours, reviewed items) does the supervisor want? | Professor | Blocks M8 | — |
-| Q-P3 | Who are the initial reviewers and administrators? | Ayush + professor | Blocks M6 | — |
+| Q-P3 | Who are the initial reviewers and administrators? | Ayush + professor | Blocks M6 | Answered 2026-10-14 by the professor: **no human reviewers**. Nobody on the team can review recordings manually, so submissions are accepted after the automatic checks and their text stays unverified ([ADR-021](ARCHITECTURE_DECISIONS.md#adr-021--no-human-reviewer-accept-after-automatic-checks-keep-text-unverified)). The team's admins (Ayush and the professor) handle reports and withdrawals. |
 | Q-P4 | The GitHub repository `AyushSoni3398/lokdhara` is currently **public** and owned by AyushSoni3398. The brief requires a private repository unless the owner approves otherwise. Should it be made private, and who is the owner of record? | Ayush Soni (AyushSoni3398, owner) | **Blocks pushing planning docs** | Answered 2026-10-11: keep the repository **public** (code and docs only; data never committed). |
 | Q-P5 | Budget available for hosting (₹/month), and whether institutional servers are available. | Professor / institution | Blocks M8 | — |
 

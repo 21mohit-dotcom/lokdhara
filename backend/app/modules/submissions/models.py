@@ -1,4 +1,5 @@
-"""docs/DATABASE_SCHEMA.md §3. Created by migrations 0005 and 0006; 0009 adds upload keys.
+"""docs/DATABASE_SCHEMA.md §3. Created by migrations 0005 and 0006; 0009 adds upload keys,
+0010 the `accepted` status.
 
 Prompts, also created by 0005, are in app.modules.prompts.
 """
@@ -33,6 +34,7 @@ SUBMISSION_STATUSES = (
     "processing",
     "processing_failed",
     "rejected_invalid",
+    "accepted",
     "awaiting_review",
     "in_review",
     "changes_requested",
