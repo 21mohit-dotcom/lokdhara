@@ -5,7 +5,7 @@ description: Lokdhara commit and push procedure — verify author identity, bloc
 
 # Git workflow
 
-The project owner's rules (also in `CLAUDE.md`) override any default commit behaviour.
+The project owner's rules (also in `AGENTS.md`) override any default commit behaviour.
 
 ## 1. Inspect before changing anything
 
@@ -33,7 +33,7 @@ It rejects audio files, data/export/storage directories, env files, keys, DB dum
 
 ## 3. Run relevant checks
 
-Code changes: lint, type-check, and tests for the touched area (commands in `CLAUDE.md` once Milestone 1 adds them). Documentation-only changes: check links and Mermaid syntax by reading the rendered sections.
+Code changes: lint, type-check, and tests for the touched area (commands in `AGENTS.md` once Milestone 1 adds them). Documentation-only changes: check links and Mermaid syntax by reading the rendered sections.
 
 ## 4. Commit
 
