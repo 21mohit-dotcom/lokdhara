@@ -59,7 +59,7 @@ flowchart TD
     D --> G{all succeeded?}
     E --> G
     F --> G
-    G -->|yes| H[submission: awaiting_review]
+    G -->|yes| H[submission: accepted]
 ```
 
 ### 3.1 Signature check (API, synchronous)
@@ -186,10 +186,10 @@ As built (`backend/app/audio/duplicates.py`, `audio.dedupe`):
 As built (M4):
 
 - A job that runs out of attempts, or fails in a way a retry cannot fix, is marked `failed` (the plan's "dead").
-- Whenever a job succeeds, fails for good, or is re-queued by an admin, the submission it belongs to is updated in the same transaction (`follow_processing` in `app/modules/submissions/service.py`). Only the latest job of each type for the submission and its recording counts, and `cleanup.quarantine` is ignored because it does not change what a reviewer sees:
+- Whenever a job succeeds, fails for good, or is re-queued by an admin, the submission it belongs to is updated in the same transaction (`follow_processing` in `app/modules/submissions/service.py`). Only the latest job of each type for the submission and its recording counts, and `cleanup.quarantine` is ignored because it does not change whether the submission can be accepted:
   - any failed → `processing_failed`;
   - otherwise any queued or running → `processing`;
-  - otherwise → `awaiting_review`.
+  - otherwise → `accepted` (migration `0010`; there is no human reviewer, ADR-021).
 - A submission already decided by validation (`rejected_invalid`) is left alone.
 - Admins see failed jobs on the app's **Failed checks** page (`/admin/jobs`) and can run each one again.
 - If updating the submission fails, the job counts as failed with `unexpected_error` and is retried, so a finished check is never lost.
