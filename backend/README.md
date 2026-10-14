@@ -13,6 +13,6 @@ uv run ruff check . && uv run ruff format --check . && uv run mypy app tests
 ```
 
 Layout: `app/modules/<domain>/` holds `models.py`, `schemas.py`, `service.py`, `router.py`;
-migrations are hand-written in `migrations/versions/` (see `.claude/skills/database-design`).
+migrations are hand-written in `migrations/versions/` (see `.agents/skills/database-design`).
 Database tests create and drop their own throwaway database on the server named by
 `LKD_TEST_DATABASE_URL`.

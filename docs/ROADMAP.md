@@ -26,7 +26,7 @@ flowchart LR
 
 ## M0 — Project planning and repository foundation *(done 2026-10-11)*
 
-- **Deliverables:** all `docs/*.md`, `CLAUDE.md`, `.claude/` skills and rules, `.gitignore`, `.editorconfig`, `.env.example`, updated README, `docs/PLANNING_REVIEW.md`.
+- **Deliverables:** all `docs/*.md`, `AGENTS.md`, `.agents/` skills and rules, `.gitignore`, `.editorconfig`, `.env.example`, updated README, `docs/PLANNING_REVIEW.md`.
 - **Dependencies:** none.
 - **Acceptance criteria:** the project owner approves the plan (or requested changes are made); repository visibility and push route resolved (Q-P4); git author identity confirmed.
 - **Tests:** document consistency review (see PLANNING_REVIEW); `.gitignore` verified with `git check-ignore`.
@@ -34,7 +34,7 @@ flowchart LR
 
 ## M1 — Application skeleton and development environment *(done 2026-10-11; device spike done for Android Chrome, iOS Safari still to test; see Q-T1 findings)*
 
-- **Deliverables:** `backend/` (FastAPI app factory, config, health endpoints, worker entrypoint stub), `frontend/` (Vite React TS, router, i18n with `hi`/`en`, layout), `infra/docker-compose.yml` (PostgreSQL 18), GitHub Actions CI (lint, type-check, unit tests, forbidden-file check, secret scan), development commands added to `CLAUDE.md`.
+- **Deliverables:** `backend/` (FastAPI app factory, config, health endpoints, worker entrypoint stub), `frontend/` (Vite React TS, router, i18n with `hi`/`en`, layout), `infra/docker-compose.yml` (PostgreSQL 18), GitHub Actions CI (lint, type-check, unit tests, forbidden-file check, secret scan), development commands added to `AGENTS.md`.
 - **Dependencies:** M0 approval.
 - **Spikes:** (a) record on 2–3 real target phones with `MediaRecorder`, run ffprobe + full decode on the results (Q-T1) — recordings by team members of themselves only, deleted after the spike, never committed; (b) confirm library versions.
 - **Acceptance criteria:** fresh clone → running API, worker, SPA, and DB locally by following README in < 1 hour; CI green; a commit adding a `.wav` file fails CI.

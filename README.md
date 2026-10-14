@@ -27,7 +27,7 @@ React + TypeScript + Vite (frontend) · Python + FastAPI (backend and audio work
 
 ## Contributing
 
-- Read [CLAUDE.md](CLAUDE.md) for project rules (they apply to humans and AI assistants alike).
+- Read [AGENTS.md](AGENTS.md) for project rules (they apply to humans and AI assistants alike).
 - Conventional Commits, small focused changes, feature branches.
 - Never commit recordings, personal data, consent documents, datasets, `.env` files, or credentials.
 

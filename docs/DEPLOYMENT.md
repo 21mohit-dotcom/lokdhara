@@ -75,7 +75,7 @@ Object storage (external, private buckets)
 
 - [ ] CI green on the commit.
 - [ ] Migration reviewed; backup taken.
-- [ ] Docs updated if behaviour changed (CLAUDE.md rule).
+- [ ] Docs updated if behaviour changed (AGENTS.md rule).
 - [ ] Staging smoke test passed (login, upload fixture, review, playback).
 - [ ] Rollback plan noted in the release notes.
 

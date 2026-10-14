@@ -1,4 +1,4 @@
-# Lokdhara — instructions for Claude Code
+# Lokdhara — instructions for AI coding assistants
 
 ## Mission and scope
 
@@ -23,10 +23,10 @@ Lokdhara is a community-driven, research-oriented platform for preserving and di
 ## Repository layout
 
 ```
-CLAUDE.md, README.md, .gitignore, .editorconfig, .env.example
+AGENTS.md, README.md, .gitignore, .editorconfig, .env.example
 docs/                 # all planning and design docs (source of truth)
-.claude/rules/        # path-scoped rules (load when matching files are touched)
-.claude/skills/       # procedures: audio, text, database, privacy, git
+.agents/rules/        # path-scoped rules (load when matching files are touched)
+.agents/skills/       # procedures: audio, text, database, privacy, git
 backend/              # FastAPI app/ (main, config, db, errors, security, cli, worker,
                       #   object_store/ (ObjectStore: local + S3), audio/ (FFmpeg checks), text/,
                       #   modules/<domain>/{models,schemas,service,router}.py), migrations/, tests/,

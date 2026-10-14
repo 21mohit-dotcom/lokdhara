@@ -5,7 +5,7 @@ description: Lokdhara commit and push procedure — verify author identity, bloc
 
 # Git workflow
 
-The project owner's rules (also in `CLAUDE.md`) override any default commit behaviour.
+The project owner's rules (also in `AGENTS.md`) override any default commit behaviour.
 
 ## 1. Inspect before changing anything
 
@@ -26,14 +26,14 @@ git config user.name; git config user.email
 Run the bundled check, which fails on forbidden files and suspicious content:
 
 ```bash
-bash .claude/skills/git-workflow/scripts/check_staged.sh
+bash .agents/skills/git-workflow/scripts/check_staged.sh
 ```
 
 It rejects audio files, data/export/storage directories, env files, keys, DB dumps, and common secret patterns in staged files. Fix the staging area rather than bypassing the check.
 
 ## 3. Run relevant checks
 
-Code changes: lint, type-check, and tests for the touched area (commands in `CLAUDE.md` once Milestone 1 adds them). Documentation-only changes: check links and Mermaid syntax by reading the rendered sections.
+Code changes: lint, type-check, and tests for the touched area (commands in `AGENTS.md` once Milestone 1 adds them). Documentation-only changes: check links and Mermaid syntax by reading the rendered sections.
 
 ## 4. Commit
 
