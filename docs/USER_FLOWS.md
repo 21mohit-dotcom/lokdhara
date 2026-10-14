@@ -28,12 +28,12 @@ flowchart TD
     P --> O
     O -->|Success| Q[Server validates: status = processing]
     Q -->|Fails validation| R[Status = rejected_invalid<br/>contributor sees reason]
-    Q -->|Passes| S[Status = awaiting_review]
+    Q -->|Passes| S[Status = accepted<br/>text labelled unverified]
 ```
 
 Notes:
 
-1. Steps 1–8 of the brief map to: open (A), choose type (G), content + metadata (H–L), consent (E/F), validation and storage (O–Q), review (F4), authorised access (F5), export (F6).
+1. Steps 1–8 of the brief map to: open (A), choose type (G), content + metadata (H–L), consent (E/F), validation and storage (O–Q), reports and hiding (F4), authorised access (F5), export (F6).
 2. Consent is checked *before* content entry so that a speaker who declines is not recorded first and asked later. A facilitator may still capture consent at the end of a session if that matches field practice; in that case the draft cannot be uploaded until consent is attached. Which order is used in the field is open question Q-G4.
 3. The draft is saved on the device before any upload starts (FR-S6).
 
@@ -76,23 +76,25 @@ flowchart TD
     J --> K
 ```
 
-## F4 — Review
+## F4 — Reports and hiding
+
+There is no reviewer ([ADR-021](ARCHITECTURE_DECISIONS.md#adr-021--no-human-reviewer-accept-after-automatic-checks-keep-text-unverified)); a submission is `accepted` once its automatic checks pass. People clean up afterwards when something is wrong:
 
 ```mermaid
 flowchart TD
-    A[Reviewer opens queue] --> B[Pick submission not created by self]
-    B --> C[Listen, read transcript and translation,<br/>see quality flags and consent permissions]
-    C --> D{Decision}
-    D -->|Approve| E[status = approved]
-    D -->|Correct text| F[Create new revision<br/>origin = human_reviewer] --> C
-    D -->|Request changes| G[status = changes_requested<br/>contributor notified in app]
-    D -->|Reject| H[status = rejected, reason code]
-    D -->|Sensitive| I[restriction flag set<br/>access narrowed to admins/designated reviewers]
+    A[Any signed-in user sees an item] --> B[Report: personal information,<br/>third party's voice, culturally restricted, wrong content]
+    B --> C[Admin opens reports page]
+    C --> D{Decision, with reason}
+    D -->|Hide| E[restriction flag set<br/>item leaves catalogue and future releases]
+    D -->|Dismiss| F[report closed, item unchanged]
+    D -->|Speaker withdrew| G[withdrawal recorded<br/>status = withdrawn]
 ```
+
+Every decision is audit-logged. A contributor whose item was hidden sees that it was hidden and why, in general terms.
 
 ## F5 — Researcher search
 
-1. Researcher signs in and opens *Browse approved data*.
+1. Researcher signs in and opens *Browse data*. Every transcription and translation is shown as *contributor-provided, unverified*.
 2. Filters: content type, dialect label, script, has transcript, has translation, duration range, quality flags, permitted use.
 3. Results show only items where the researcher's access scope **and** the item's effective consent allow viewing.
 4. Playing audio fetches a short-lived signed URL for the *playback* rendition; originals are not available to researchers in the MVP.
