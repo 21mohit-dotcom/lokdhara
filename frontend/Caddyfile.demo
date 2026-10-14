@@ -1,0 +1,15 @@
+# Local demo only: plain http on port 80 inside the container (docs/DEMO.md).
+:80 {
+	encode gzip
+	handle /api/* {
+		reverse_proxy api:8000
+	}
+	handle /healthz {
+		reverse_proxy api:8000
+	}
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+}
