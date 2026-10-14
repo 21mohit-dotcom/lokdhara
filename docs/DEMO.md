@@ -15,10 +15,12 @@ Open a terminal (Git Bash or PowerShell on Windows, Terminal on a Mac) in your `
 ```bash
 git checkout main
 git pull origin main
-docker compose -f infra/demo/docker-compose.yml up --build -d
+BUILDX_BAKE_ENTITLEMENTS_FS=0 docker compose -f infra/demo/docker-compose.yml up --build -d
 ```
 
-The first start downloads and builds everything, which takes several minutes. Later starts take a few seconds.
+The first start downloads and builds everything, which takes several minutes (about 6 on a typical laptop). Later starts take a few seconds.
+
+`BUILDX_BAKE_ENTITLEMENTS_FS=0` lets newer Docker versions read `backend/` and `frontend/`, which sit outside the folder of the demo file. Without it, the build stops with "additional privileges requested". It is only needed with `--build`.
 
 ## 3. Create the demo accounts (once)
 
