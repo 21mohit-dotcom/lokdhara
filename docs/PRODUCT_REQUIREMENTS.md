@@ -14,7 +14,7 @@ Lokdhara aims to give the Mundari-speaking community and researchers one place t
 
 1. Collect recordings and texts from native speakers with explicit, recorded consent.
 2. Link audio to transcriptions and to Hindi and English translations.
-3. Review and correct that material with a visible history.
+3. Check that material automatically, keep its history visible, and label contributor text honestly as unverified.
 4. Produce versioned, documented datasets that are released only within the permissions the speakers granted.
 
 ## 3. Goals and non-goals
@@ -24,10 +24,10 @@ Lokdhara aims to give the Mundari-speaking community and researchers one place t
 | ID | Goal |
 |----|------|
 | G1 | Let a contributor, or a facilitator working with a speaker, submit audio, text, or both, from a low-end Android phone on a slow connection. |
-| G2 | Record consent and permitted uses *before* any submission can leave the "stored, unreviewed" state. |
+| G2 | Record consent and permitted uses *before* any submission can leave the draft state. |
 | G3 | Preserve every original recording and original text byte-for-byte; all processing produces separate derived artefacts. |
-| G4 | Let reviewers inspect, correct, approve, reject, or restrict submissions, with every change attributed and versioned. |
-| G5 | Let authorised researchers build an immutable, versioned dataset release from approved items and export it in a documented format, filtered by consent. |
+| G4 | Accept submissions that pass automatic checks without a human reviewer, label their text as contributor-provided and unverified, and let administrators hide reported items, with every change attributed and versioned ([ADR-021](ARCHITECTURE_DECISIONS.md#adr-021--no-human-reviewer-accept-after-automatic-checks-keep-text-unverified)). |
+| G5 | Let authorised researchers build an immutable, versioned dataset release from accepted items and export it in a documented format, filtered by consent. |
 | G6 | Honour withdrawal requests across live data, future releases, and (as far as technically possible) existing releases. |
 
 ### Non-goals (MVP)
@@ -47,8 +47,8 @@ Detailed personas are in [USER_PERSONAS.md](USER_PERSONAS.md); permissions are i
 |------|----------------------|
 | Contributor | A native speaker (or community member) submitting their own speech or text. |
 | Facilitator | A trusted community member or field researcher who records *other* speakers and captures their consent. A contributor with extra permissions. |
-| Reviewer | A Mundari-literate person who checks transcription, translation, quality, and sensitivity. |
-| Researcher | An authorised linguist or student who reads approved data and requests exports. |
+| Reviewer | A Mundari-literate person who checks transcription, translation, quality, and sensitivity. **Not used in the MVP:** the team has no reviewers (ADR-021). The role stays in the code for later peer checking. |
+| Researcher | An authorised linguist or student who reads accepted data and requests exports. |
 | Administrator | Manages accounts, roles, consent-form versions, withdrawals, and operations. |
 
 ## 5. Functional requirements
@@ -91,7 +91,7 @@ Priority: **M** = must have for MVP, **S** = should have if time allows, **F** =
 | FR-S4 | A transcription can be attached to a recording, and Hindi and/or English translations to a transcription or text entry. Each is optional at submission time. | M |
 | FR-S5 | Metadata: content type (story, conversation, vocabulary, song, other), dialect/region as reported, recording context, recording date, and optional consented speaker attributes. | M |
 | FR-S6 | A submission can be saved as a draft on the device and resumed; an interrupted upload does not lose the recording. | M |
-| FR-S7 | The contributor sees the status of their own submissions (draft, processing, awaiting review, changes requested, approved, rejected, restricted). | M |
+| FR-S7 | The contributor sees the status of their own submissions (draft, processing, accepted, could not be processed, rejected as invalid, hidden, withdrawn). | M |
 | FR-S8 | Resumable chunked upload for long recordings on unstable connections. | S |
 | FR-S9 | Time-aligned segments (start/end times within a recording) for transcriptions. | F (schema reserved) |
 
@@ -103,21 +103,23 @@ Priority: **M** = must have for MVP, **S** = should have if time allows, **F** =
 | FR-P2 | Size and duration limits are enforced (initial values in [AUDIO_PROCESSING_PIPELINE.md](AUDIO_PROCESSING_PIPELINE.md)). | M |
 | FR-P3 | Technical metadata (codec, sample rate, channels, bit depth, duration) is extracted and stored. | M |
 | FR-P4 | Derived renditions are produced: a low-bandwidth playback file and a standard analysis file. The original is never modified or deleted by processing. | M |
-| FR-P5 | Basic quality metrics (silence ratio, clipping, loudness) are computed and shown to reviewers as advisory signals. | M |
-| FR-P6 | Exact duplicates (same file hash) are detected; near-duplicates are flagged for a human, never auto-deleted. | M (exact) / S (near) |
+| FR-P5 | Basic quality metrics (silence ratio, clipping, loudness) are computed and shown to contributors, administrators and researchers as advisory signals. | M |
+| FR-P6 | Exact duplicates (same file hash) are detected; near-duplicates are flagged and linked, never auto-deleted. | M (exact) / S (near) |
 | FR-P7 | Text is stored verbatim; Unicode-normalised and policy-normalised forms are separate derived fields. | M |
 | FR-P8 | Processing failures are logged, retried with limits, and visible to administrators; a failed job can be re-run. | M |
 
-### 5.5 Review
+### 5.5 Acceptance and reports (no human review)
+
+The professor decided on 2026-10-14 that there is no human reviewer ([ADR-021](ARCHITECTURE_DECISIONS.md#adr-021--no-human-reviewer-accept-after-automatic-checks-keep-text-unverified)). The review requirements FR-R1 to FR-R6 are replaced by:
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| FR-R1 | Reviewers see a queue of submissions awaiting review, filterable by type, dialect, and age. | M |
-| FR-R2 | A reviewer can play audio, read the transcription/translation, and see quality signals and consent permissions (not the speaker's identity). | M |
-| FR-R3 | A reviewer can approve, reject (with reason), request changes, or mark as sensitive/restricted. | M |
-| FR-R4 | A reviewer can submit a corrected transcription or translation as a new revision; the earlier revision remains. | M |
-| FR-R5 | A reviewer cannot approve their own submission. | M |
-| FR-R6 | Two-reviewer agreement for dataset inclusion. | F (configurable later) |
+| FR-R1 | A submission whose automatic checks all succeed becomes `accepted` without waiting for a person. | M |
+| FR-R2 | Contributor text, including the read-mode prompt sentence, stays `unverified`; no screen or export calls it verified. | M |
+| FR-R3 | Any signed-in user can report an item (personal information, a third party's voice, culturally restricted, wrong content). | M |
+| FR-R4 | An administrator can hide a reported item with a restriction flag, or dismiss the report, with a reason; both are audit-logged. Hidden items leave the catalogue and future releases. | M |
+| FR-R5 | Corrections are new revisions by the contributor or an administrator; the earlier revision remains. | M |
+| FR-R6 | Peer checking of clips and text by other contributors, or by reviewers if any become available. | F |
 
 ### 5.6 Researcher access and datasets
 
@@ -157,16 +159,16 @@ Priority: **M** = must have for MVP, **S** = should have if time allows, **F** =
 | Upload interrupted at 90% | Recording remains in the device draft; retry resumes or restarts without data loss. Server discards incomplete quarantine objects after 24 h. |
 | File renamed to `.mp3` but is an executable or HTML | Rejected by signature/decoder check; logged as a validation failure; nothing promoted to permanent storage. |
 | Valid audio, but 100% silence or < 1 s | Accepted into quarantine, flagged `silent`/`too_short`; contributor told before final submission when detectable client-side. |
-| Same file uploaded twice | Exact hash match flagged; contributor sees "this looks like a recording you already submitted"; reviewer decides. |
-| Same story recorded twice by the same speaker | Not a duplicate: both kept; reviewer may link them as related takes. |
-| Transcription present, no translation | Valid. Item can be approved for audio+transcript datasets; translation status shown as missing. |
-| Contributor marks a transcription as uncertain | Uncertainty kept as structured markup; item cannot be marked "verified transcript" until a reviewer resolves it. |
-| Machine-generated transcript (future) | Stored with `origin = machine`; never counted as verified until a human revision supersedes it. |
-| Speaker under 18, no guardian consent | Submission blocked from review; stays private to the facilitator; flagged to an administrator. |
-| Recording contains third parties who did not consent | Reviewer marks `restricted: third_party_voice`; excluded from all releases until resolved. |
-| Content is sacred, ritual, or culturally restricted | Reviewer marks `restricted: culturally_sensitive`; visible only to administrators and designated community reviewers; never exported without explicit community approval (see open question Q-G3). |
-| Personal information spoken in the recording (phone numbers, names of others) | Reviewer flags `contains_pii`; excluded from public/AI-training releases; redaction is future work. |
-| Abusive, hateful, or spam submissions | Rejected with reason; repeated abuse leads to account suspension. Invite-only access limits exposure. |
+| Same file uploaded twice | Exact hash match flagged; contributor sees "this looks like a recording you already submitted"; both kept and linked as possible duplicates for researchers to filter. |
+| Same story recorded twice by the same speaker | Not a duplicate: both kept; an administrator may link them as related takes. |
+| Transcription present, no translation | Valid. Item can be included in audio+transcript datasets; translation status shown as missing. |
+| Contributor marks a transcription as uncertain | Uncertainty kept as structured markup; the export carries the uncertainty; nothing is marked "verified transcript" in the MVP. |
+| Machine-generated transcript (future) | Stored with `origin = machine`; never counted as verified. |
+| Speaker under 18, no guardian consent | Submission cannot leave the draft state; stays private to the facilitator; flagged to an administrator. |
+| Recording contains third parties who did not consent | Someone reports it and an administrator marks `restricted: third_party_voice`; excluded from all releases until resolved. |
+| Content is sacred, ritual, or culturally restricted | Someone reports it and an administrator marks `restricted: culturally_sensitive`; visible only to administrators and designated community members; never exported without explicit community approval (see open question Q-G3). |
+| Personal information spoken in the recording (phone numbers, names of others) | Someone reports it and an administrator flags `contains_pii`; excluded from public/AI-training releases; redaction is future work. |
+| Abusive, hateful, or spam submissions | Reported and hidden by an administrator; repeated abuse leads to account suspension. Invite-only access limits exposure. |
 | Account compromise | Admin revokes sessions; audit log identifies affected actions. |
 | Consent withdrawn after an item was included in a frozen release | Item marked withdrawn; excluded from all *future* releases; release record annotated; holders of prior exports notified per governance policy. |
 | Facilitator leaves the project | Their submissions remain; ownership of speaker contact data transfers to an administrator. |
@@ -176,7 +178,7 @@ Priority: **M** = must have for MVP, **S** = should have if time allows, **F** =
 
 These are proposed and need agreement with the supervising professor (open question Q-P2):
 
-- A defined number of consented speakers and hours of reviewed audio (target to be set).
+- A defined number of consented speakers and hours of accepted audio (target to be set).
 - Zero incidents of sensitive data committed to the repository or exposed publicly.
 - At least one frozen, documented dataset release that a researcher outside the core team can load using only the data card.
 - Contributors can complete a submission without help after one demonstration (observed in pilot).
