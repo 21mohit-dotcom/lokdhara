@@ -1,1 +1,1 @@
-"""Domain modules (see .claude/rules/backend-python.md)."""
+"""Domain modules (see .agents/rules/backend-python.md)."""

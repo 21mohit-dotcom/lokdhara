@@ -2,6 +2,8 @@
 
 Date: 2026-10-11 · Branch: `docs/planning-foundation` · Status: **Approved by the project owner on 2026-10-11.**
 
+> Note (2026-10-14): `CLAUDE.md` is now `AGENTS.md` and the `.claude/` folder is now `.agents/`. This review keeps the old names as they were on the review date.
+
 ## 1. Decisions proposed (all need approval)
 
 | Area | Proposal | Doc |
