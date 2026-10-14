@@ -26,7 +26,7 @@ flowchart LR
 
 ## M0 — Project planning and repository foundation *(done 2026-10-11)*
 
-- **Deliverables:** all `docs/*.md`, `AGENTS.md`, `.claude/` skills and rules, `.gitignore`, `.editorconfig`, `.env.example`, updated README, `docs/PLANNING_REVIEW.md`.
+- **Deliverables:** all `docs/*.md`, `AGENTS.md`, `.agents/` skills and rules, `.gitignore`, `.editorconfig`, `.env.example`, updated README, `docs/PLANNING_REVIEW.md`.
 - **Dependencies:** none.
 - **Acceptance criteria:** the project owner approves the plan (or requested changes are made); repository visibility and push route resolved (Q-P4); git author identity confirmed.
 - **Tests:** document consistency review (see PLANNING_REVIEW); `.gitignore` verified with `git check-ignore`.

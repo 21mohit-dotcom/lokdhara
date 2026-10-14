@@ -26,7 +26,7 @@ git config user.name; git config user.email
 Run the bundled check, which fails on forbidden files and suspicious content:
 
 ```bash
-bash .claude/skills/git-workflow/scripts/check_staged.sh
+bash .agents/skills/git-workflow/scripts/check_staged.sh
 ```
 
 It rejects audio files, data/export/storage directories, env files, keys, DB dumps, and common secret patterns in staged files. Fix the staging area rather than bypassing the check.

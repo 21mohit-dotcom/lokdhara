@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Fails if staged changes include files Lokdhara must never commit.
-# Usage: bash .claude/skills/git-workflow/scripts/check_staged.sh
+# Usage: bash .agents/skills/git-workflow/scripts/check_staged.sh
 set -euo pipefail
 
 status=0
