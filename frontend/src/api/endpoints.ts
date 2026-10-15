@@ -3,16 +3,21 @@ import { request } from './client'
 import type {
   ConsentAnswers,
   ConsentForm,
+  DiffPart,
   Job,
+  Playback,
   Prompt,
   PromptType,
+  Revision,
   Script,
   Session,
   Speaker,
   Submission,
   SubmissionCreate,
+  SubmissionDetail,
   TextLayer,
   TextLayerCreate,
+  TextLayerDetail,
 } from './types'
 
 export const login = (username: string, password: string) =>
@@ -47,6 +52,10 @@ export const getPrompt = (id: string) => request<Prompt>('GET', `/prompts/${id}`
 export const createSubmission = (body: SubmissionCreate) =>
   request<Submission>('POST', '/submissions', { json: body })
 export const getSubmission = (id: string) => request<Submission>('GET', `/submissions/${id}`)
+export const getSubmissionDetail = (id: string) =>
+  request<SubmissionDetail>('GET', `/submissions/${id}`)
+export const getPlayback = (recordingId: string) =>
+  request<Playback>('GET', `/recordings/${recordingId}/playback`)
 export const listSubmissions = () =>
   request<{ items: Submission[] }>('GET', '/submissions?mine=true&limit=100').then((r) => r.items)
 
@@ -69,6 +78,17 @@ export function uploadRecording(
 
 export const createTextLayer = (submissionId: string, body: TextLayerCreate) =>
   request<TextLayer>('POST', `/submissions/${submissionId}/text-layers`, { json: body })
+
+export const addRevision = (
+  layerId: string,
+  body: { base_revision_id: string; content: string; change_note?: string },
+) => request<TextLayerDetail>('POST', `/text-layers/${layerId}/revisions`, { json: body })
+
+export const listRevisions = (layerId: string) =>
+  request<{ items: Revision[] }>('GET', `/text-layers/${layerId}/revisions`)
+
+export const diffRevisions = (fromId: string, toId: string) =>
+  request<{ parts: DiffPart[] }>('GET', `/text-revisions/${fromId}/diff/${toId}`)
 
 export const submitSubmission = (id: string) =>
   request<Submission>('POST', `/submissions/${id}/submit`)

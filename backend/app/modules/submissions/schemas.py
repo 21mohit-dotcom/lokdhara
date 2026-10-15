@@ -110,6 +110,17 @@ class RecordingOut(BaseModel):
     created_at: datetime
 
 
+class PlaybackSource(BaseModel):
+    url: str
+    content_type: str
+
+
+class PlaybackOut(BaseModel):
+    """Short-lived links; empty while the listening copies are still being made."""
+
+    sources: list[PlaybackSource]
+
+
 class TextLayerCreateRequest(BaseModel):
     """A text layer and its first revision. Standalone text needs an `entry_type`; a
     transcription names the `recording_id` it transcribes; a translation names the
@@ -168,6 +179,17 @@ class RevisionOut(BaseModel):
 
 class RevisionListOut(BaseModel):
     items: list[RevisionOut]
+
+
+class DiffPart(BaseModel):
+    op: Literal["equal", "delete", "insert"]
+    text: str
+
+
+class RevisionDiffOut(BaseModel):
+    from_revision_id: uuid.UUID
+    to_revision_id: uuid.UUID
+    parts: list[DiffPart]
 
 
 class TextLayerOut(BaseModel):
