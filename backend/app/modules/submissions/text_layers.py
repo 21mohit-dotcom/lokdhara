@@ -16,7 +16,7 @@ from app.modules.processing import queue
 from app.modules.submissions import service
 from app.modules.submissions.models import Recording, Submission, TextLayer, TextRevision
 from app.modules.submissions.schemas import RevisionCreateRequest, TextLayerCreateRequest
-from app.text import markup, normalize, safety, scripts
+from app.text import diff, markup, normalize, safety, scripts
 
 # Which layer types each submission kind takes.
 _LAYERS_FOR_KIND = {
@@ -222,3 +222,24 @@ def add_revision(
     _text_changed(db, submission)
     db.commit()
     return service.layer_view(db, layer)
+
+
+def _visible_revision(db: Session, user: AuthenticatedUser, revision_id: uuid.UUID) -> TextRevision:
+    revision = db.get(TextRevision, revision_id)
+    if revision is None:
+        raise ApiError(404, "text_revision_not_found", "Text version not found.")
+    try:
+        _visible_layer(db, user, revision.layer_id)
+    except ApiError as exc:
+        raise ApiError(404, "text_revision_not_found", "Text version not found.") from exc
+    return revision
+
+
+def compare(
+    db: Session, user: AuthenticatedUser, from_id: uuid.UUID, to_id: uuid.UUID
+) -> list[tuple[diff.Op, str]]:
+    """What changed from one version of a text to another (either order)."""
+    old, new = _visible_revision(db, user, from_id), _visible_revision(db, user, to_id)
+    if old.layer_id != new.layer_id:
+        raise ApiError(422, "different_layers", "Only versions of the same text can be compared.")
+    return diff.diff(old.content_original, new.content_original)

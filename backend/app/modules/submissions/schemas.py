@@ -170,6 +170,17 @@ class RevisionListOut(BaseModel):
     items: list[RevisionOut]
 
 
+class DiffPart(BaseModel):
+    op: Literal["equal", "delete", "insert"]
+    text: str
+
+
+class RevisionDiffOut(BaseModel):
+    from_revision_id: uuid.UUID
+    to_revision_id: uuid.UUID
+    parts: list[DiffPart]
+
+
 class TextLayerOut(BaseModel):
     id: uuid.UUID
     submission_id: uuid.UUID

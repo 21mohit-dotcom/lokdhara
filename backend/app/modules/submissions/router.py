@@ -14,8 +14,10 @@ from app.modules.submissions.models import Submission, TextRevision
 from app.modules.submissions.schemas import (
     CollectionContext,
     DeviceHint,
+    DiffPart,
     RecordingOut,
     RevisionCreateRequest,
+    RevisionDiffOut,
     RevisionListOut,
     RevisionOut,
     SubmissionCreateRequest,
@@ -171,6 +173,19 @@ def list_revisions(layer_id: uuid.UUID, user: CurrentUser, db: DbSession) -> Rev
     """Newest first."""
     return RevisionListOut(
         items=[_revision_out(r) for r in text_layers.history(db, user, layer_id)]
+    )
+
+
+@router.get("/text-revisions/{from_id}/diff/{to_id}")
+def diff_revisions(
+    from_id: uuid.UUID, to_id: uuid.UUID, user: CurrentUser, db: DbSession
+) -> RevisionDiffOut:
+    """Grapheme-level differences between two versions of the same text."""
+    parts = text_layers.compare(db, user, from_id, to_id)
+    return RevisionDiffOut(
+        from_revision_id=from_id,
+        to_revision_id=to_id,
+        parts=[DiffPart(op=op, text=text) for op, text in parts],
     )
 
 
