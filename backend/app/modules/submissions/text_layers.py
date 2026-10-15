@@ -12,10 +12,11 @@ from sqlalchemy.orm import Session
 
 from app.errors import ApiError
 from app.modules.identity.service import AuthenticatedUser, utcnow
+from app.modules.processing import queue
 from app.modules.submissions import service
 from app.modules.submissions.models import Recording, Submission, TextLayer, TextRevision
 from app.modules.submissions.schemas import RevisionCreateRequest, TextLayerCreateRequest
-from app.text import markup, normalize, safety, scripts
+from app.text import diff, markup, normalize, safety, scripts
 
 # Which layer types each submission kind takes.
 _LAYERS_FOR_KIND = {
@@ -43,8 +44,21 @@ def _checked(content: str, entry_type: str | None) -> str:
 
 
 def _check_editable(submission: Submission) -> None:
-    if submission.status not in service.EDITABLE_STATUSES:
+    if submission.status not in service.TEXT_EDITABLE_STATUSES:
         raise ApiError(409, "submission_not_editable", "This submission can no longer be edited.")
+
+
+def _text_changed(db: Session, submission: Submission) -> None:
+    submission.updated_at = utcnow()
+    if submission.status == "accepted":
+        # Check the changed text again (scripts, duplicates); the submission stays accepted.
+        queue.enqueue(
+            db,
+            "text.derive",
+            target_type="submission",
+            target_id=submission.id,
+            dedupe_key=f"text.derive:{submission.id}",
+        )
 
 
 def _new_revision(
@@ -141,7 +155,7 @@ def create_layer(
     db.add(layer)
     db.flush()
     _new_revision(db, layer, number=1, content=content, author=user.id)
-    submission.updated_at = utcnow()
+    _text_changed(db, submission)
     db.commit()
     return service.layer_view(db, layer)
 
@@ -184,8 +198,7 @@ def add_revision(
     layer_id: uuid.UUID,
     body: RevisionCreateRequest,
 ) -> service.LayerView:
-    """Contributors revise their own text until review starts; reviewer revisions arrive
-    with the review milestone (M6)."""
+    """Contributors revise their own text while it is a draft and after it is accepted."""
     layer = _visible_layer(db, user, layer_id, for_update=True)
     submission = service.get_owned(db, user, layer.submission_id)
     _check_editable(submission)
@@ -206,6 +219,27 @@ def add_revision(
         based_on=body.base_revision_id,
         change_note=body.change_note,
     )
-    submission.updated_at = utcnow()
+    _text_changed(db, submission)
     db.commit()
     return service.layer_view(db, layer)
+
+
+def _visible_revision(db: Session, user: AuthenticatedUser, revision_id: uuid.UUID) -> TextRevision:
+    revision = db.get(TextRevision, revision_id)
+    if revision is None:
+        raise ApiError(404, "text_revision_not_found", "Text version not found.")
+    try:
+        _visible_layer(db, user, revision.layer_id)
+    except ApiError as exc:
+        raise ApiError(404, "text_revision_not_found", "Text version not found.") from exc
+    return revision
+
+
+def compare(
+    db: Session, user: AuthenticatedUser, from_id: uuid.UUID, to_id: uuid.UUID
+) -> list[tuple[diff.Op, str]]:
+    """What changed from one version of a text to another (either order)."""
+    old, new = _visible_revision(db, user, from_id), _visible_revision(db, user, to_id)
+    if old.layer_id != new.layer_id:
+        raise ApiError(422, "different_layers", "Only versions of the same text can be compared.")
+    return diff.diff(old.content_original, new.content_original)

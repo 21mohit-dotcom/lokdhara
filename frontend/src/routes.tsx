@@ -9,6 +9,7 @@ import { FailedJobsPage } from './pages/FailedJobsPage'
 import { HomePage } from './pages/HomePage'
 import { LoginPage } from './pages/LoginPage'
 import { MySubmissionsPage } from './pages/MySubmissionsPage'
+import { SubmissionPage } from './pages/SubmissionPage'
 import { NewSubmissionPage } from './pages/NewSubmissionPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 
@@ -26,6 +27,7 @@ export const routes: RouteObject[] = [
       { path: 'drafts/:draftId', element: signedIn(<NewSubmissionPage />) },
       { path: 'speakers/:speakerId/consent', element: signedIn(<ConsentPage />) },
       { path: 'submissions', element: signedIn(<MySubmissionsPage />) },
+      { path: 'submissions/:submissionId', element: signedIn(<SubmissionPage />) },
       { path: 'admin/jobs', element: signedIn(<FailedJobsPage />) },
       { path: '*', element: <NotFoundPage /> },
     ],

@@ -100,6 +100,48 @@ export interface TextLayer {
   script_code: Script
 }
 
+/** One saved version of a text; never changed after it is saved (ADR-011). */
+export interface Revision {
+  id: string
+  revision_number: number
+  content: string
+  origin: string
+  based_on_revision_id: string | null
+  source_revision_id: string | null
+  detected_scripts: string[]
+  uncertainty_markup: boolean
+  verification_status: 'unverified' | 'verified' | 'disputed'
+  change_note: string | null
+  created_at: string
+}
+
+export interface DiffPart {
+  op: 'equal' | 'delete' | 'insert'
+  text: string
+}
+
+export interface TextLayerDetail extends TextLayer {
+  entry_type: EntryType | null
+  current_revision: Revision | null
+  /** Translations: the source text has a newer version than the one translated. */
+  source_changed: boolean
+  /** The chosen script does not appear in the text (a warning only). */
+  script_mismatch: boolean
+}
+
+export interface Recording {
+  id: string
+  upload_status: string
+  size_bytes: number
+  duration_ms: number | null
+  quality_flags: string[]
+  created_at: string
+}
+
+export interface Playback {
+  sources: { url: string; content_type: string }[]
+}
+
 export interface Submission {
   id: string
   client_submission_id: string
@@ -111,6 +153,11 @@ export interface Submission {
   created_at: string
   submitted_at: string | null
   text_layers?: TextLayer[]
+}
+
+export interface SubmissionDetail extends Submission {
+  recordings: Recording[]
+  text_layers: TextLayerDetail[]
 }
 
 export interface TextLayerCreate {

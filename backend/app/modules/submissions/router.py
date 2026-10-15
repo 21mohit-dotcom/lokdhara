@@ -14,8 +14,12 @@ from app.modules.submissions.models import Submission, TextRevision
 from app.modules.submissions.schemas import (
     CollectionContext,
     DeviceHint,
+    DiffPart,
+    PlaybackOut,
+    PlaybackSource,
     RecordingOut,
     RevisionCreateRequest,
+    RevisionDiffOut,
     RevisionListOut,
     RevisionOut,
     SubmissionCreateRequest,
@@ -28,7 +32,7 @@ from app.modules.submissions.schemas import (
     TextLayerOut,
     UploadOut,
 )
-from app.object_store import ObjectStore, get_object_store
+from app.object_store import Bucket, ObjectStore, get_object_store
 from app.text import scripts
 
 router = APIRouter(tags=["submissions"])
@@ -145,6 +149,27 @@ def upload_recording(
     return UploadOut(recording_id=recording.id, upload_status=recording.upload_status)
 
 
+@router.get("/recordings/{recording_id}/playback")
+def recording_playback(
+    recording_id: uuid.UUID, user: CurrentUser, db: DbSession, settings: SettingsDep, store: Store
+) -> PlaybackOut:
+    """Signed links to the listening copies, Opus first, then AAC."""
+    return PlaybackOut(
+        sources=[
+            PlaybackSource(
+                url=store.signed_url(
+                    Bucket.DERIVED,
+                    rendition.object_key,
+                    ttl_seconds=settings.signed_url_ttl_seconds,
+                    content_type=content_type,
+                ),
+                content_type=content_type,
+            )
+            for rendition, content_type in service.playback_files(db, user, recording_id)
+        ]
+    )
+
+
 @router.post("/submissions/{submission_id}/submit")
 def submit_submission(
     submission_id: uuid.UUID, user: Recorder, db: DbSession, store: Store
@@ -171,6 +196,19 @@ def list_revisions(layer_id: uuid.UUID, user: CurrentUser, db: DbSession) -> Rev
     """Newest first."""
     return RevisionListOut(
         items=[_revision_out(r) for r in text_layers.history(db, user, layer_id)]
+    )
+
+
+@router.get("/text-revisions/{from_id}/diff/{to_id}")
+def diff_revisions(
+    from_id: uuid.UUID, to_id: uuid.UUID, user: CurrentUser, db: DbSession
+) -> RevisionDiffOut:
+    """Grapheme-level differences between two versions of the same text."""
+    parts = text_layers.compare(db, user, from_id, to_id)
+    return RevisionDiffOut(
+        from_revision_id=from_id,
+        to_revision_id=to_id,
+        parts=[DiffPart(op=op, text=text) for op, text in parts],
     )
 
 

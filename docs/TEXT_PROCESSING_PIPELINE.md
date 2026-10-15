@@ -98,11 +98,14 @@ Until linguists define conventions (Q-X3), the proposed minimal markup is:
 
 `uncertainty_markup = true` when any `[?…]` or `[inaudible]` is present. A revision with uncertainty markup cannot be marked `verified` until resolved or explicitly accepted by a reviewer. The markup format is versioned and parsed by a tested function so exports can strip or convert it.
 
-## 9. Human correction and review
+## 9. Human correction (no review)
 
-- Reviewers edit in a side-by-side editor; saving creates a new revision with `origin = human_reviewer` and `based_on_revision_id`.
-- Diff between revisions is shown character-wise (important for diacritics and matras).
-- Verification is a review event, not an edit: a reviewer marks a specific revision `verified`.
+There is no reviewer ([ADR-021](ARCHITECTURE_DECISIONS.md#adr-021--no-human-reviewer-accept-after-automatic-checks-keep-text-unverified)), so the contributor corrects their own text. As built (M5):
+
+- The owner can add a revision, or a missing transcription or Hindi/English translation, while the submission is a draft and again once it is `accepted` (not while it is being checked, and never after withdrawal). Each save is a new revision with `origin = human_contributor` and `based_on_revision_id`; a save based on an older revision gets `409 revision_conflict`, and the app reloads and asks the contributor to save again.
+- A change after acceptance queues `text.derive` again, so script and duplicate checks see the new text; the submission stays `accepted`.
+- Every revision stays `unverified`. Nothing in the app marks text verified; the submission page labels each text "written by the contributor, not checked by anyone".
+- The submission page (`/submissions/:id`) shows each text with its translations, a script-mismatch warning, a "the text this translates has changed" warning, and the earlier versions. `GET /text-revisions/{a}/diff/{b}` (`app/text/diff.py`) compares two versions by grapheme cluster (important for matras), and the page shows added text underlined and removed text struck out.
 
 ## 10. Duplicate detection (text)
 
@@ -112,4 +115,4 @@ Until linguists define conventions (Q-X3), the proposed minimal markup is:
 
 ## 11. Version tracking
 
-Covered by `text_revisions` (append-only). The *current* revision pointer moves forward only; reverting creates a new revision whose content equals an older one, keeping history linear and auditable.
+Covered by `text_revisions` (append-only); the app lists a text's versions newest first. The *current* revision pointer moves forward only; reverting creates a new revision whose content equals an older one, keeping history linear and auditable.

@@ -85,7 +85,7 @@ Speakers and consent (except withdrawal requests, which come with the withdrawal
 | GET | `/submissions/{id}` | per access rules | Detail incl. layers, current revisions, quality flags, status |
 | PATCH | `/submissions/{id}` | owner, draft/changes_requested only | Edit metadata |
 | POST | `/submissions/{id}/recordings` | owner | Multipart `file`; `Idempotency-Key`; → `202 {recording_id, upload_status: "quarantined"}` |
-| POST | `/submissions/{id}/text-layers` | owner / reviewer | Create layer + first revision: `{layer_type, recording_id?, source_layer_id?, entry_type?, language_tag, script_code, content}` |
+| POST | `/submissions/{id}/text-layers` | owner (draft or accepted) | Create layer + first revision: `{layer_type, recording_id?, source_layer_id?, entry_type?, language_tag, script_code, content}` |
 | POST | `/submissions/{id}/submit` | owner | Draft → processing; checks consent and required parts |
 | POST | `/submissions/{id}/withdraw` | owner/admin 🔒 | Withdraw a single submission |
 
@@ -94,9 +94,9 @@ Implemented in Milestone 3: create, list, read, edit, upload, text layers, and s
 - **Create** takes the body above plus optional `title`; `collection_context` accepts only the keys in [DATA_DICTIONARY.md](DATA_DICTIONARY.md) §3. Sending the same `client_submission_id` again returns the same draft (`201`). `collection_method` must fit: `self_recorded` only for your own speaker profile, `facilitator_field` / `facilitator_remote` only for someone else's (facilitators and admins), `imported_archive` only for admins. A prompt must be approved and fit the mode (image or situation for `prompted`, read sentence for `read`).
 - **List** is newest first, `limit` 1–100 (default 50), with `next_cursor`. `mine=true` (default) lists what you created; `mine=false` adds what you may see under the access rule (facilitators: their speakers' submissions; admins: all).
 - **Edit** changes `content_type`, `title`, `dialect_label`, `region_coarse`, `recorded_on`, `collection_context`. What was recorded, of whom, and how is fixed at creation.
-- **Upload** needs the speaker's active consent and an `Idempotency-Key` header; the same key returns the stored recording. Optional form field `source` (`browser_recorder` or `file_upload`). One recording per submission (assumption A11). The file goes to quarantine under a server-made key; ffprobe and the full decode run later in the worker (M4).
+- **Upload** needs the speaker's active consent and an `Idempotency-Key` header; the same key returns the stored recording, or, when the draft's copy expired after 30 days (Q-T7), stores the same file again under the same recording (a different file gets `recording_changed`). Optional form field `source` (`browser_recorder` or `file_upload`). One recording per submission (assumption A11). The file goes to quarantine under a server-made key; ffprobe and the full decode run later in the worker (M4).
 - **Submit** attaches the active consent record, moves the draft to `processing`, and queues `audio.validate` for the recording and `text.derive` when there is text. For read speech the sentence that was read becomes an unverified transcription with origin `prompt_text`. The server keeps a submission in `draft` while its file uploads; `uploading` in the state machine is the device's state.
-- Error codes: `submission_not_found` (404), `forbidden` (403), `client_submission_id_taken` (409), `collection_method_not_allowed` / `prompt_mismatch` (422), `prompt_not_found` (404), `prompt_retired` (409), `submission_not_editable` / `submission_not_draft` (409), `consent_required` (422), `recording_not_expected` (422), `recording_exists` (409), `bad_signature` (415), `too_large` (413), `upload_rate_limited` (429 with `Retry-After`, `LKD_UPLOADS_PER_USER_PER_HOUR`), `recording_required` / `text_required` (422), `recording_missing` (409), `speaker_withdrawn` (409).
+- Error codes: `submission_not_found` (404), `forbidden` (403), `client_submission_id_taken` (409), `collection_method_not_allowed` / `prompt_mismatch` (422), `prompt_not_found` (404), `prompt_retired` (409), `submission_not_editable` / `submission_not_draft` (409), `consent_required` (422), `recording_not_expected` (422), `recording_exists` (409), `bad_signature` (415), `too_large` (413), `upload_rate_limited` (429 with `Retry-After`, `LKD_UPLOADS_PER_USER_PER_HOUR`), `recording_required` / `text_required` (422), `recording_missing` / `recording_expired` / `recording_changed` (409), `speaker_withdrawn` (409).
 
 ## 4a. Prompts
 
@@ -116,9 +116,11 @@ Implemented in Milestone 3. `POST /admin/prompts` and `/versions` are multipart:
 | Method | Path | Auth | Purpose |
 |--------|------|------|---------|
 | GET | `/recordings/{id}` | per access rules | Technical metadata, quality metrics/flags, rendition list |
-| GET | `/recordings/{id}/playback` | per access rules (🔒 if restricted) | `{url, expires_at, mime_type}` signed URL for playback rendition |
+| GET | `/recordings/{id}/playback` | per access rules (🔒 if restricted) | `{sources: [{url, content_type}]}`: signed URLs for the listening copies, Opus (`audio/webm`) first, then AAC (`audio/mp4`) |
 | GET | `/recordings/{id}/waveform` | per access rules | Peaks JSON |
 | GET | `/admin/recordings/{id}/original?reason=…` | admin 🔒 | Streams original; reason required |
+
+`/recordings/{id}/playback` is implemented (Milestone 5): `sources` is empty until `audio.renditions` has made the copies, and links expire with `LKD_SIGNED_URL_TTL_SECONDS`. Error code: `recording_not_found` (404, also for recordings the user may not see). The other routes in this table are not built yet.
 
 ## 6. Text layers and revisions
 
@@ -126,14 +128,15 @@ Implemented in Milestone 3. `POST /admin/prompts` and `/versions` are multipart:
 |--------|------|------|---------|
 | GET | `/text-layers/{id}` | per access rules | Layer + current revision |
 | GET | `/text-layers/{id}/revisions` | per access rules | Full history |
-| POST | `/text-layers/{id}/revisions` | owner (pre-approval) / reviewer | `{base_revision_id, content, change_note?}` → `201` or `409 revision_conflict` |
-| GET | `/text-revisions/{a}/diff/{b}` | per access rules | Character-level diff |
+| POST | `/text-layers/{id}/revisions` | owner (draft or accepted) | `{base_revision_id, content, change_note?}` → `201` or `409 revision_conflict` |
+| GET | `/text-revisions/{a}/diff/{b}` | per access rules | Differences between two versions of the same text: `{from_revision_id, to_revision_id, parts: [{op: equal|delete|insert, text}]}` |
 
-Implemented in Milestone 3, except the diff (it comes with the review editor in M6) and reviewer revisions (M6).
+Implemented in Milestone 3; the diff in Milestone 5. There are no reviewer revisions (ADR-021).
 
-- **`POST /submissions/{id}/text-layers`** (owner, while the submission is a draft or has changes requested): standalone text needs `entry_type` and fits `text` and `audio_text` submissions; a transcription names a `recording_id` of the same submission; a translation names a `source_layer_id` of the same submission (standalone or transcription) and must be in another language. One transcription per recording and script, one translation per source and language; later changes are revisions. Returns the layer with its first revision (`201`).
-- **Revisions** keep `content` exactly as sent; the server also stores an NFC copy. `uncertainty_markup` is true when the text contains `[?…]` or `[inaudible]`. `detected_scripts` lists the scripts the text actually uses (ISO 15924 codes, the most used first; letters in any other script count as `Zyyy`), and the layer shows `script_mismatch: true` when its chosen `script_code` does not appear in its current text. This is a warning for the contributor and a hint for the reviewer; the text is never changed. A translation's revision records the source revision it was made from, and the layer shows `source_changed: true` once the source has a newer revision. `POST /text-layers/{id}/revisions` returns the layer with its new current revision; `GET …/revisions` is newest first.
-- Error codes: `text_layer_not_found` (404), `layer_not_allowed` / `layer_link_invalid` / `same_language` (422), `layer_exists` (409), `text_empty` / `text_too_long` / `disallowed_character` (422), `revision_conflict` (409), `submission_not_editable` (409), `forbidden` (403). Invalid UTF-8 cannot reach these checks: the JSON body is refused first (`validation_failed`).
+- **`POST /submissions/{id}/text-layers`** (owner, while the submission is a draft or once it is accepted; there is no reviewer, ADR-021): standalone text needs `entry_type` and fits `text` and `audio_text` submissions; a transcription names a `recording_id` of the same submission; a translation names a `source_layer_id` of the same submission (standalone or transcription) and must be in another language. One transcription per recording and script, one translation per source and language; later changes are revisions. Returns the layer with its first revision (`201`).
+- **Revisions** keep `content` exactly as sent; the server also stores an NFC copy. `uncertainty_markup` is true when the text contains `[?…]` or `[inaudible]`. `detected_scripts` lists the scripts the text actually uses (ISO 15924 codes, the most used first; letters in any other script count as `Zyyy`), and the layer shows `script_mismatch: true` when its chosen `script_code` does not appear in its current text. This is a warning for the contributor and a hint for the reviewer; the text is never changed. A translation's revision records the source revision it was made from, and the layer shows `source_changed: true` once the source has a newer revision. `POST /text-layers/{id}/revisions` returns the layer with its new current revision; `GET …/revisions` is newest first. A text added or changed after acceptance queues `text.derive` again (script and duplicate checks); the submission stays `accepted`. While the submission is being processed, text cannot change (`submission_not_editable`).
+- **Diff** compares by user-perceived characters (grapheme clusters), so a Devanagari consonant keeps its vowel sign. Joining the `equal` and `delete` parts gives the first version, the `equal` and `insert` parts the second.
+- Error codes: `text_layer_not_found` / `text_revision_not_found` (404), `different_layers` (422), `layer_not_allowed` / `layer_link_invalid` / `same_language` (422), `layer_exists` (409), `text_empty` / `text_too_long` / `disallowed_character` (422), `revision_conflict` (409), `submission_not_editable` (409), `forbidden` (403). Invalid UTF-8 cannot reach these checks: the JSON body is refused first (`validation_failed`).
 
 ## 7. Review
 

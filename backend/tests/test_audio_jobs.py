@@ -310,6 +310,25 @@ def test_derived_copies_are_made_and_traced(
     assert object_store.sha256_of(Bucket.ORIGINALS, key) == recording.sha256_original
 
 
+def test_the_owner_can_listen_to_the_copies_but_others_cannot(
+    client: TestClient,
+    speaker_id: str,
+    engine: Engine,
+    make_user: MakeUser,
+    tmp_path: Path,
+) -> None:
+    recording_id = submit_audio(client, speaker_id, make_audio(tmp_path / "a", "m4a"))
+    playback = f"/api/v1/recordings/{recording_id}/playback"
+    assert client.get(playback).json() == {"sources": []}  # not made yet
+    run_jobs(engine)
+
+    sources = client.get(playback).json()["sources"]
+    assert [s["content_type"] for s in sources] == ["audio/webm", "audio/mp4"]
+    assert client.get(sources[0]["url"]).status_code == 200
+    act_as(client, make_user("ravi", "contributor"))
+    assert client.get(playback).json()["code"] == "recording_not_found"
+
+
 def test_making_copies_again_adds_nothing(
     client: TestClient, speaker_id: str, engine: Engine, db: Session, tmp_path: Path
 ) -> None:

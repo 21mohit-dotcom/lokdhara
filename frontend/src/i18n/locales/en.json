@@ -252,11 +252,15 @@
     "upload_rate_limited": "Too many uploads in the last hour. It will try again later.",
     "recording_exists": "This submission already has its recording.",
     "recording_missing": "The uploaded recording was lost. Please record again.",
+    "recording_expired": "The recording waited too long and was removed from the server. Upload it again from this phone.",
+    "recording_changed": "This is not the same recording that was uploaded before.",
     "text_empty": "The text is empty.",
     "text_too_long": "The text is too long for this kind of entry.",
     "disallowed_character": "The text contains a hidden or unusual character that cannot be saved.",
     "submission_not_editable": "This submission can no longer be changed.",
-    "validation_failed": "Some details are not valid. Please check them."
+    "validation_failed": "Some details are not valid. Please check them.",
+    "revision_conflict": "Someone saved a newer version of this text meanwhile. Check it and save again.",
+    "layer_exists": "This text already exists. Reload the page to see it."
   },
   "jobs": {
     "title": "Failed checks",
@@ -269,5 +273,45 @@
     "queued": "Queued again",
     "adminOnly": "Only admins can see this page.",
     "link": "Failed checks"
+  },
+  "submission": {
+    "back": "← My submissions",
+    "sentOn": "Sent on {{date}}",
+    "recording": "Recording",
+    "notReadyToPlay": "The recording is still being prepared for listening.",
+    "notPlayable": "This recording cannot be played.",
+    "texts": "Texts",
+    "noText": "No text yet.",
+    "version": "version {{number}}",
+    "unverified": "Written by the contributor, not checked by anyone",
+    "sourceChanged": "The text this translates has changed since. Please check the translation.",
+    "languages": {
+      "unr": "Mundari",
+      "hi": "Hindi",
+      "en": "English"
+    },
+    "addTranscription": "Write down what is said",
+    "addTranslation": {
+      "hi": "Add Hindi translation",
+      "en": "Add English translation"
+    },
+    "translationOf": {
+      "hi": "Hindi translation",
+      "en": "English translation"
+    },
+    "scriptMismatch": "This text does not use the script chosen for it ({{script}}). Check that the right script was picked.",
+    "edit": {
+      "start": "Correct",
+      "text": "Text",
+      "note": "What did you change? (optional)",
+      "save": "Save",
+      "cancel": "Cancel"
+    },
+    "history": {
+      "title": "Earlier versions",
+      "show": "Earlier versions",
+      "hide": "Hide earlier versions",
+      "showChanges": "What changed"
+    }
   }
 }
