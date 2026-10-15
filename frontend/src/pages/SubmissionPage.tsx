@@ -1,10 +1,14 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router'
 
 import * as api from '../api/endpoints'
 import type { Playback, Recording, SubmissionDetail, TextLayerDetail } from '../api/types'
 import { ErrorMessage } from '../components/ErrorMessage'
+import { AddText, EditText, TRANSLATIONS } from './submission/TextEditor'
+
+// With no reviewer the contributor keeps correcting and translating after acceptance (ADR-021).
+const TEXT_EDITABLE = ['accepted']
 
 /** One sent submission: its status, its recording to listen to, and its texts (ROADMAP M5). */
 export function SubmissionPage() {
@@ -13,13 +17,31 @@ export function SubmissionPage() {
   const [submission, setSubmission] = useState<SubmissionDetail | null>(null)
   const [error, setError] = useState<unknown>(null)
 
+  const [adding, setAdding] = useState(false)
+
+  const reload = useCallback(
+    () => api.getSubmissionDetail(submissionId).then(setSubmission, setError),
+    [submissionId],
+  )
   useEffect(() => {
-    api.getSubmissionDetail(submissionId).then(setSubmission, setError)
-  }, [submissionId])
+    void reload()
+  }, [reload])
 
   if (!submission) return <ErrorMessage error={error} />
 
   const date = (iso: string) => new Date(iso).toLocaleDateString(i18n.resolvedLanguage)
+  const editable = TEXT_EDITABLE.includes(submission.status)
+  const replace = (saved: TextLayerDetail) =>
+    setSubmission({
+      ...submission,
+      text_layers: submission.text_layers.map((layer) => (layer.id === saved.id ? saved : layer)),
+    })
+  // A recording without a transcription yet: offer to write down what is said.
+  const untranscribed = submission.recordings.find(
+    (recording) =>
+      recording.upload_status === 'promoted' &&
+      !submission.text_layers.some((layer) => layer.recording_id === recording.id),
+  )
   // Each text, with the translations of it right after it.
   const sources = submission.text_layers.filter((layer) => !layer.source_layer_id)
   const ordered = sources.flatMap((source) => [
@@ -49,9 +71,39 @@ export function SubmissionPage() {
       {ordered.length === 0 && <p className="note">{t('submission.noText')}</p>}
       <ul className="list">
         {ordered.map((layer) => (
-          <TextLayerItem key={layer.id} layer={layer} />
+          <TextLayerItem
+            key={layer.id}
+            layer={layer}
+            submission={submission}
+            editable={editable}
+            onSaved={replace}
+            onChanged={() => void reload()}
+          />
         ))}
       </ul>
+      {editable &&
+        untranscribed &&
+        (adding ? (
+          <AddText
+            submissionId={submission.id}
+            base={{
+              layer_type: 'transcription',
+              recording_id: untranscribed.id,
+              language_tag: 'unr',
+            }}
+            label={t('text.transcription')}
+            chooseScript
+            onAdded={() => {
+              setAdding(false)
+              void reload()
+            }}
+            onCancel={() => setAdding(false)}
+          />
+        ) : (
+          <button type="button" className="small-action" onClick={() => setAdding(true)}>
+            {t('submission.addTranscription')}
+          </button>
+        ))}
     </section>
   )
 }
@@ -83,9 +135,32 @@ function RecordingPlayer({ recording }: { recording: Recording }) {
   )
 }
 
-function TextLayerItem({ layer }: { layer: TextLayerDetail }) {
+function TextLayerItem({
+  layer,
+  submission,
+  editable,
+  onSaved,
+  onChanged,
+}: {
+  layer: TextLayerDetail
+  submission: SubmissionDetail
+  editable: boolean
+  onSaved: (layer: TextLayerDetail) => void
+  onChanged: () => void
+}) {
   const { t } = useTranslation()
+  const [mode, setMode] = useState<'view' | 'edit' | string>('view')
   const revision = layer.current_revision
+  // Hindi and English translations this text does not have yet.
+  const missing = layer.source_layer_id
+    ? []
+    : TRANSLATIONS.filter(
+        ({ languageTag }) =>
+          languageTag !== layer.language_tag &&
+          !submission.text_layers.some(
+            (other) => other.source_layer_id === layer.id && other.language_tag === languageTag,
+          ),
+      )
   return (
     <li className="list-item">
       <strong>
@@ -107,8 +182,62 @@ function TextLayerItem({ layer }: { layer: TextLayerDetail }) {
       {revision?.verification_status !== 'verified' && (
         <span className="badge">{t('submission.unverified')}</span>
       )}
+      {layer.script_mismatch && (
+        <span className="status waiting">
+          {t('submission.scriptMismatch', { script: t(`scripts.${layer.script_code}`) })}
+        </span>
+      )}
       {layer.source_changed && (
         <span className="status waiting">{t('submission.sourceChanged')}</span>
+      )}
+      {mode === 'edit' && (
+        <EditText
+          layer={layer}
+          onSaved={(saved) => {
+            setMode('view')
+            onSaved(saved)
+          }}
+          onCancel={() => setMode('view')}
+          onConflict={onChanged}
+        />
+      )}
+      {TRANSLATIONS.filter(({ languageTag }) => mode === languageTag).map(
+        ({ languageTag, scriptCode }) => (
+          <AddText
+            key={languageTag}
+            submissionId={submission.id}
+            base={{
+              layer_type: 'translation',
+              source_layer_id: layer.id,
+              language_tag: languageTag,
+              script_code: scriptCode,
+            }}
+            label={t(`submission.translationOf.${languageTag}`)}
+            chooseScript={false}
+            onAdded={() => {
+              setMode('view')
+              onChanged()
+            }}
+            onCancel={() => setMode('view')}
+          />
+        ),
+      )}
+      {editable && mode === 'view' && revision && (
+        <div className="row">
+          <button type="button" className="small-action" onClick={() => setMode('edit')}>
+            {t('submission.edit.start')}
+          </button>
+          {missing.map(({ languageTag }) => (
+            <button
+              key={languageTag}
+              type="button"
+              className="small-action"
+              onClick={() => setMode(languageTag)}
+            >
+              {t(`submission.addTranslation.${languageTag}`)}
+            </button>
+          ))}
+        </div>
       )}
     </li>
   )

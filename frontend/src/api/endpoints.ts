@@ -15,6 +15,7 @@ import type {
   SubmissionDetail,
   TextLayer,
   TextLayerCreate,
+  TextLayerDetail,
 } from './types'
 
 export const login = (username: string, password: string) =>
@@ -75,6 +76,11 @@ export function uploadRecording(
 
 export const createTextLayer = (submissionId: string, body: TextLayerCreate) =>
   request<TextLayer>('POST', `/submissions/${submissionId}/text-layers`, { json: body })
+
+export const addRevision = (
+  layerId: string,
+  body: { base_revision_id: string; content: string; change_note?: string },
+) => request<TextLayerDetail>('POST', `/text-layers/${layerId}/revisions`, { json: body })
 
 export const submitSubmission = (id: string) =>
   request<Submission>('POST', `/submissions/${id}/submit`)

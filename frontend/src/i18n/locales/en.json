@@ -258,7 +258,9 @@
     "text_too_long": "The text is too long for this kind of entry.",
     "disallowed_character": "The text contains a hidden or unusual character that cannot be saved.",
     "submission_not_editable": "This submission can no longer be changed.",
-    "validation_failed": "Some details are not valid. Please check them."
+    "validation_failed": "Some details are not valid. Please check them.",
+    "revision_conflict": "Someone saved a newer version of this text meanwhile. Check it and save again.",
+    "layer_exists": "This text already exists. Reload the page to see it."
   },
   "jobs": {
     "title": "Failed checks",
@@ -287,6 +289,23 @@
       "unr": "Mundari",
       "hi": "Hindi",
       "en": "English"
+    },
+    "addTranscription": "Write down what is said",
+    "addTranslation": {
+      "hi": "Add Hindi translation",
+      "en": "Add English translation"
+    },
+    "translationOf": {
+      "hi": "Hindi translation",
+      "en": "English translation"
+    },
+    "scriptMismatch": "This text does not use the script chosen for it ({{script}}). Check that the right script was picked.",
+    "edit": {
+      "start": "Correct",
+      "text": "Text",
+      "note": "What did you change? (optional)",
+      "save": "Save",
+      "cancel": "Cancel"
     }
   }
 }

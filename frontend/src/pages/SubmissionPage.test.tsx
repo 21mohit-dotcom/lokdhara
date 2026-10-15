@@ -1,8 +1,9 @@
-import { screen } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import i18n from '../i18n'
-import { fakeServer, SESSION } from '../test/fakeServer'
+import { fakeServer, problem, SESSION } from '../test/fakeServer'
 import { renderApp } from '../test/render'
 
 const REVISION = {
@@ -44,7 +45,7 @@ const TRANSLATION = {
   source_changed: true,
 }
 
-export const DETAIL = {
+const DETAIL = {
   id: 'sub1',
   client_submission_id: 'c1',
   kind: 'audio_text',
@@ -106,5 +107,89 @@ describe('one submission', () => {
     expect(
       await screen.findByText('The recording is still being prepared for listening.'),
     ).toBeInTheDocument()
+  })
+
+  it('saves a correction as a new version on top of the one shown', async () => {
+    const corrected = {
+      ...LAYER,
+      current_revision: { ...REVISION, id: 'rev3', revision_number: 3, content: 'नया वाक्य' },
+    }
+    const { requests } = fakeServer({
+      'GET /auth/me': () => ({ body: SESSION }),
+      'GET /submissions/sub1': () => ({ body: DETAIL }),
+      'GET /recordings/rec1/playback': () => ({ body: { sources: [] } }),
+      'POST /text-layers/l1/revisions': () => ({ status: 201, body: corrected }),
+    })
+    renderApp('/submissions/sub1')
+    const [first] = await screen.findAllByRole('listitem')
+    await userEvent.click(within(first!).getByRole('button', { name: 'Correct' }))
+    const box = within(first!).getByLabelText('Text')
+    await userEvent.clear(box)
+    await userEvent.type(box, 'नया वाक्य')
+    await userEvent.click(within(first!).getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByText(/version 3/)).toBeInTheDocument()
+    const post = requests.find((r) => r.method === 'POST')
+    expect(post?.body).toEqual({ base_revision_id: 'rev1', content: 'नया वाक्य' })
+  })
+
+  it('reloads when someone saved a newer version first', async () => {
+    let loads = 0
+    fakeServer({
+      'GET /auth/me': () => ({ body: SESSION }),
+      'GET /submissions/sub1': () => {
+        loads += 1
+        return { body: DETAIL }
+      },
+      'GET /recordings/rec1/playback': () => ({ body: { sources: [] } }),
+      'POST /text-layers/l1/revisions': () => problem(409, 'revision_conflict'),
+    })
+    renderApp('/submissions/sub1')
+    const [first] = await screen.findAllByRole('listitem')
+    await userEvent.click(within(first!).getByRole('button', { name: 'Correct' }))
+    await userEvent.type(within(first!).getByLabelText('Text'), ' और')
+    await userEvent.click(within(first!).getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Someone saved a newer version')
+    expect(loads).toBe(2)
+  })
+
+  it('adds a missing translation and warns about a script that does not match', async () => {
+    const mismatched = { ...LAYER, script_mismatch: true }
+    const detail = { ...DETAIL, text_layers: [mismatched] }
+    const { requests } = fakeServer({
+      'GET /auth/me': () => ({ body: SESSION }),
+      'GET /submissions/sub1': () => ({ body: detail }),
+      'GET /recordings/rec1/playback': () => ({ body: { sources: [] } }),
+      'POST /submissions/sub1/text-layers': () => ({ status: 201, body: TRANSLATION }),
+    })
+    renderApp('/submissions/sub1')
+
+    expect(
+      await screen.findByText(/does not use the script chosen for it \(Devanagari\)/),
+    ).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Add English translation' }))
+    await userEvent.type(screen.getByLabelText('English translation'), 'A test sentence.')
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    await screen.findByRole('button', { name: 'Add English translation' })
+    expect(requests.find((r) => r.method === 'POST')?.body).toEqual({
+      layer_type: 'translation',
+      source_layer_id: 'l1',
+      language_tag: 'en',
+      script_code: 'Latn',
+      content: 'A test sentence.',
+    })
+  })
+
+  it('offers no editing while a submission is still being checked', async () => {
+    fakeServer({
+      'GET /auth/me': () => ({ body: SESSION }),
+      'GET /submissions/sub1': () => ({ body: { ...DETAIL, status: 'processing' } }),
+      'GET /recordings/rec1/playback': () => ({ body: { sources: [] } }),
+    })
+    renderApp('/submissions/sub1')
+    await screen.findByText('Being checked')
+    expect(screen.queryByRole('button', { name: 'Correct' })).toBeNull()
   })
 })
