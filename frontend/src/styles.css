@@ -93,6 +93,10 @@ input:focus-visible, textarea:focus-visible, button:focus-visible, a:focus-visib
 .summary dt { font-weight: 600; margin-top: 8px; }
 .summary dd { margin: 0; }
 .user-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+/* Changes between two versions of a text: added text underlined, removed text struck out */
+ins { background: #dff3e1; text-decoration: underline; }
+del { background: #fbe1e1; text-decoration: line-through; }
+.history { padding-left: 20px; display: grid; gap: 8px; }
 
 /* Lists of speakers, drafts, and submissions */
 .list { list-style: none; padding: 0; display: grid; gap: 12px; }

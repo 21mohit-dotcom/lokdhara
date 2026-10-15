@@ -306,6 +306,12 @@
       "note": "What did you change? (optional)",
       "save": "Save",
       "cancel": "Cancel"
+    },
+    "history": {
+      "title": "Earlier versions",
+      "show": "Earlier versions",
+      "hide": "Hide earlier versions",
+      "showChanges": "What changed"
     }
   }
 }

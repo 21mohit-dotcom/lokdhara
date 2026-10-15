@@ -3,10 +3,12 @@ import { request } from './client'
 import type {
   ConsentAnswers,
   ConsentForm,
+  DiffPart,
   Job,
   Playback,
   Prompt,
   PromptType,
+  Revision,
   Script,
   Session,
   Speaker,
@@ -81,6 +83,12 @@ export const addRevision = (
   layerId: string,
   body: { base_revision_id: string; content: string; change_note?: string },
 ) => request<TextLayerDetail>('POST', `/text-layers/${layerId}/revisions`, { json: body })
+
+export const listRevisions = (layerId: string) =>
+  request<{ items: Revision[] }>('GET', `/text-layers/${layerId}/revisions`)
+
+export const diffRevisions = (fromId: string, toId: string) =>
+  request<{ parts: DiffPart[] }>('GET', `/text-revisions/${fromId}/diff/${toId}`)
 
 export const submitSubmission = (id: string) =>
   request<Submission>('POST', `/submissions/${id}/submit`)

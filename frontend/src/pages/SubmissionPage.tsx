@@ -6,6 +6,7 @@ import * as api from '../api/endpoints'
 import type { Playback, Recording, SubmissionDetail, TextLayerDetail } from '../api/types'
 import { ErrorMessage } from '../components/ErrorMessage'
 import { AddText, EditText, TRANSLATIONS } from './submission/TextEditor'
+import { TextHistory } from './submission/TextHistory'
 
 // With no reviewer the contributor keeps correcting and translating after acceptance (ADR-021).
 const TEXT_EDITABLE = ['accepted']
@@ -221,6 +222,19 @@ function TextLayerItem({
             onCancel={() => setMode('view')}
           />
         ),
+      )}
+      {mode === 'history' && <TextHistory layerId={layer.id} language={layer.language_tag} />}
+      {revision && revision.revision_number > 1 && (mode === 'view' || mode === 'history') && (
+        <div className="row">
+          <button
+            type="button"
+            className="small-action"
+            aria-expanded={mode === 'history'}
+            onClick={() => setMode(mode === 'history' ? 'view' : 'history')}
+          >
+            {t(mode === 'history' ? 'submission.history.hide' : 'submission.history.show')}
+          </button>
+        </div>
       )}
       {editable && mode === 'view' && revision && (
         <div className="row">

@@ -192,4 +192,32 @@ describe('one submission', () => {
     await screen.findByText('Being checked')
     expect(screen.queryByRole('button', { name: 'Correct' })).toBeNull()
   })
+
+  it('lists earlier versions and shows what one changed', async () => {
+    const older = { ...REVISION, id: 'rev0', revision_number: 1, based_on_revision_id: null }
+    fakeServer({
+      'GET /auth/me': () => ({ body: SESSION }),
+      'GET /submissions/sub1': () => ({ body: { ...DETAIL, text_layers: [LAYER] } }),
+      'GET /recordings/rec1/playback': () => ({ body: { sources: [] } }),
+      'GET /text-layers/l1/revisions': () => ({ body: { items: [REVISION, older] } }),
+      'GET /text-revisions/rev0/diff/rev1': () => ({
+        body: {
+          parts: [
+            { op: 'equal', text: 'यह ' },
+            { op: 'delete', text: 'पुराना' },
+            { op: 'insert', text: 'नया' },
+          ],
+        },
+      }),
+    })
+    const { container } = renderApp('/submissions/sub1')
+    await userEvent.click(await screen.findByRole('button', { name: 'Earlier versions' }))
+
+    const history = await screen.findByRole('list', { name: 'Earlier versions' })
+    expect(within(history).getAllByRole('listitem')).toHaveLength(2)
+    await userEvent.click(within(history).getByRole('button', { name: 'What changed' }))
+    expect(await within(history).findByText('नया')).toBeInTheDocument()
+    expect(container.querySelector('ins')?.textContent).toBe('नया')
+    expect(container.querySelector('del')?.textContent).toBe('पुराना')
+  })
 })

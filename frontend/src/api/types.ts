@@ -115,6 +115,11 @@ export interface Revision {
   created_at: string
 }
 
+export interface DiffPart {
+  op: 'equal' | 'delete' | 'insert'
+  text: string
+}
+
 export interface TextLayerDetail extends TextLayer {
   entry_type: EntryType | null
   current_revision: Revision | null
