@@ -61,7 +61,7 @@ Originals are **not** included by default (privacy, size); a release may include
   "prompt": {"id": "…", "key": "img-farming-012", "version": 2, "type": "image"},
   "recorded_on": "2027-01-15",
   "audio": {"path": "audio/0192f1c4-….flac", "duration_ms": 61234, "sample_rate_hz": 16000, "is_lossy_source": true, "sha256": "…"},
-  "transcription": {"revision_id": "…", "script": "Deva", "text": "…", "origin": "human_reviewer", "verification_status": "verified", "uncertainty_markup": false},
+  "transcription": {"revision_id": "…", "script": "Deva", "text": "…", "origin": "prompt_text", "verification_status": "unverified", "uncertainty_markup": false},
   "translations": [{"language": "hi", "revision_id": "…", "text": "…", "origin": "human_contributor", "verification_status": "unverified"}],
   "quality_flags": [],
   "consent_permissions": {"research": true, "public": false, "ai_training": false, "commercial": false},

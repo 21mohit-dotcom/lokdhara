@@ -144,8 +144,8 @@ Implemented by migrations `0005` (prompts, submissions, related items) and `0006
 | prompt_id | uuid FK prompts NULL | Required when `recording_mode` is `prompted` or `read`. |
 | collection_method 🔎 | text CHECK IN ('self_recorded','facilitator_field','facilitator_remote','imported_archive') | |
 | collection_context 🗂 | jsonb DEFAULT '{}' | Setting, number of speakers, equipment. |
-| status 🔎 | text (see state machine) | |
-| restriction_flags 🔎 | text[] DEFAULT '{}' | `sensitive`, `third_party_voice`, `contains_pii`, `culturally_restricted`, `minor`. |
+| status 🔎 | text (see state machine) | Migration `0010` adds `accepted`, set when every automatic check succeeds (ADR-021). The review statuses stay allowed but unused. |
+| restriction_flags 🔎 | text[] DEFAULT '{}' | `sensitive`, `third_party_voice`, `contains_pii`, `culturally_restricted`, `minor`. An admin sets one to hide a reported item. |
 | created_at, submitted_at, updated_at | timestamptz | |
 
 CHECKs: consent before leaving `draft`; `recording_mode` is NULL exactly for `text` submissions; `prompt_id` is set exactly for `prompted`/`read`. Frozen: `id`, `client_submission_id`, `submitted_by`, `created_at`.

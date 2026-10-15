@@ -31,7 +31,7 @@ flowchart TD
     PS --> REC
     R2 --> REC
     REC --> N{Mode}
-    N -->|read| T[Prompt text attached as reference transcription<br/>unverified until reviewer checks it matches]
+    N -->|read| T[Prompt text attached as reference transcription<br/>stays unverified: nobody reviews it, ADR-021]
     N -->|free / prompted| O[Optional transcription by contributor]
     T --> M[Metadata, review, upload]
     O --> M

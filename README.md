@@ -3,7 +3,7 @@ Lokdhara is a community-driven platform for preserving and digitizing linguistic
 
 ## Current focus: Mundari language preservation (MVP)
 
-The first version focuses **only on the Mundari language** (Jharkhand, India): consented audio recordings from native speakers, Mundari text, transcriptions linked to recordings, Hindi and English translations, human review, and versioned datasets released only within the permissions speakers have granted. The wider heritage vision above is long-term and out of scope for the MVP (see [docs/MVP_SCOPE.md](docs/MVP_SCOPE.md)).
+The first version focuses **only on the Mundari language** (Jharkhand, India): consented audio recordings from native speakers, Mundari text, transcriptions linked to recordings, Hindi and English translations, automatic quality checks (there is no human reviewer, so contributor text is labelled unverified), and versioned datasets released only within the permissions speakers have granted. The wider heritage vision above is long-term and out of scope for the MVP (see [docs/MVP_SCOPE.md](docs/MVP_SCOPE.md)).
 
 ## Project status
 

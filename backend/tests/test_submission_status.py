@@ -57,7 +57,7 @@ def test_a_submission_waits_for_review_once_its_checks_succeed(
 ) -> None:
     assert status(db, submission_id) == "processing"
     run_jobs(engine)
-    assert status(db, submission_id) == "awaiting_review"
+    assert status(db, submission_id) == "accepted"
 
 
 def test_a_check_that_keeps_failing_fails_the_submission_until_an_admin_retries(
@@ -82,7 +82,7 @@ def test_a_check_that_keeps_failing_fails_the_submission_until_an_admin_retries(
     assert client.post(f"/api/v1/admin/jobs/{job_id}/retry").status_code == 200
     assert status(db, submission_id) == "processing"
     run_jobs(engine)
-    assert status(db, submission_id) == "awaiting_review"
+    assert status(db, submission_id) == "accepted"
 
 
 def test_a_retried_failure_keeps_the_submission_processing(

@@ -333,16 +333,17 @@ def _add_prompt_text(db: Session, submission: Submission, recording: Recording) 
 
 # ------------------------------------------------------------------ processing status
 
-# Housekeeping that does not change what a reviewer sees.
-_NOT_REVIEW_RELEVANT = ("cleanup.quarantine",)
+# Housekeeping that does not change whether a submission can be accepted.
+_HOUSEKEEPING = ("cleanup.quarantine",)
 
 
 @queue.on_job_changed
 def follow_processing(db: Session, job: Job) -> None:
     """Moves a submission on once its checks have settled (docs/DATA_LIFECYCLE.md stage 4):
-    to `awaiting_review` when every check succeeded, to `processing_failed` when one failed
-    for good, and back to `processing` when an admin queues the failed ones again."""
-    if job.job_type in _NOT_REVIEW_RELEVANT or job.target_id is None:
+    to `accepted` when every check succeeded (no human reviewer, ADR-021), to
+    `processing_failed` when one failed for good, and back to `processing` when an admin
+    queues the failed ones again."""
+    if job.job_type in _HOUSEKEEPING or job.target_id is None:
         return
     if job.target_type == "recording":
         submission_id = db.scalar(
@@ -367,7 +368,7 @@ def follow_processing(db: Session, job: Job) -> None:
                 and_(Job.target_type == "submission", Job.target_id == submission.id),
                 and_(Job.target_type == "recording", Job.target_id.in_(recording_ids)),
             ),
-            Job.job_type.not_in(_NOT_REVIEW_RELEVANT),
+            Job.job_type.not_in(_HOUSEKEEPING),
         )
         .ext(distinct_on(Job.job_type, Job.target_id))
         .order_by(Job.job_type, Job.target_id, Job.id.desc())
@@ -378,7 +379,7 @@ def follow_processing(db: Session, job: Job) -> None:
     elif states & {"queued", "running"}:
         status = "processing"
     else:
-        status = "awaiting_review"
+        status = "accepted"
     if status != submission.status:
         submission.status = status
         submission.updated_at = utcnow()

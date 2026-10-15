@@ -2,7 +2,7 @@
 
 Each ADR records a decision, the alternatives, and **the conditions under which we would revisit it**. Status values: *Proposed* (awaiting the project owner's approval), *Accepted*, *Superseded by ADR-NNN*. Never edit an accepted ADR's decision in place; add a new ADR that supersedes it.
 
-ADRs 001–019 were **Accepted** by the project owner on 2026-10-11 (ADR-019 after the Milestone 2 spike), and ADR-020 on 2026-10-12.
+ADRs 001–019 were **Accepted** by the project owner on 2026-10-11 (ADR-019 after the Milestone 2 spike), ADR-020 on 2026-10-12, and ADR-021 (a decision by the professor) on 2026-10-14.
 
 | # | Title | Status |
 |---|-------|--------|
@@ -26,6 +26,7 @@ ADRs 001–019 were **Accepted** by the project owner on 2026-10-11 (ADR-019 aft
 | 018 | Three recording modes (free, prompted, read) with a versioned prompt library | Accepted |
 | 019 | In-house PostgreSQL job table instead of Procrastinate (refines ADR-007) | Accepted |
 | 020 | Database triggers enforce column immutability and self-review; schema refinements from Milestone 2 | Accepted |
+| 021 | No human reviewer: submissions are accepted after automatic checks and their text stays unverified | Accepted |
 
 ---
 
@@ -163,3 +164,16 @@ ADRs 001–019 were **Accepted** by the project owner on 2026-10-11 (ADR-019 aft
 - **Alternatives:** Service-only enforcement (one code path away from silent rewrites); separate history tables for every mutable column (more tables and joins for little gain at MVP scale).
 - **Consequences:** Rule violations surface as database errors with stable prefixes (`append_only:`, `immutable_columns:`, `self_review:`) that services map to problem details. Schema changes to guarded tables must update the trigger's column list in the same migration.
 - **Revisit when:** a guarded column needs a legitimate correction workflow (add a dedicated routine, like erasure), or trigger overhead shows up in profiling.
+
+## ADR-021 — No human reviewer: accept after automatic checks, keep text unverified
+
+- **Status:** Accepted (professor's decision, confirmed by the project owner on 2026-10-14; answers Q-P3). Narrows the review parts of ADR-011, ADR-018 and ADR-020, and the review workflow in PRODUCT_REQUIREMENTS §5.5, USER_FLOWS F4 and ROADMAP M6.
+- **Context:** The plan assumed Mundari-literate reviewers who listen to every submission and approve it before it can enter a dataset. The team has nobody who can do that, and none is expected for the pilot.
+- **Decision:**
+  - A submission whose automatic checks all succeed moves straight to a new status, `accepted`. Nobody approves it first. The checks that reject input (file type, decoding, duration, consent) and the advisory warnings (silence, clipping, script mismatch, possible duplicates) stay as they are.
+  - Contributor text is kept as **contributor-provided and unverified** (`verification_status = unverified`). In read mode the prompt sentence stays the reference transcription, also unverified. No screen, export, manifest or data card calls such text "verified".
+  - Clean-up still needs a person now and then, but not a review of everything: any signed-in user can **report** an item (personal information, a third party's voice, culturally restricted content, wrong content), and an admin can **hide** it by setting a restriction flag or record a withdrawal. Hidden and withdrawn items never reach a release.
+  - The review tables and statuses from M2 (`review_events`, `in_review`, `changes_requested`, `approved`, `rejected`, the self-review trigger) stay in the schema, unused for now, so that peer checking can be added later without a migration that drops data.
+- **Alternatives:** Keep the reviewer queue and let the admin approve everything (one person becomes the bottleneck and would approve without understanding the language); peer voting among contributors as in Mozilla Common Voice (a good later step, but needs enough active contributors first); marking text "verified" when it came from read mode (false, since speakers do not always read exactly what is shown).
+- **Consequences:** Datasets are honest but noisier: data cards must say that transcriptions are unverified. Pre-freeze checks D1 and D5 change (DATA_QUALITY_AND_VALIDATION §4). M6 shrinks to reporting, admin hiding and the researcher catalogue. Existing `awaiting_review` rows move to `accepted` in migration `0010`.
+- **Revisit when:** Mundari-literate volunteers or paid reviewers become available, or enough contributors are active for peer checking.

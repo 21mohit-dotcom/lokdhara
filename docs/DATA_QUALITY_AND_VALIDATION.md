@@ -1,6 +1,6 @@
 # Data Quality and Validation
 
-Status: **Proposed.** Distinguishes *hard validation* (input is rejected), *quality signals* (advisory, shown to reviewers), and *dataset checks* (run before a release can be frozen).
+Status: **Proposed.** Distinguishes *hard validation* (input is rejected), *quality signals* (advisory, shown to contributors, admins and researchers), and *dataset checks* (run before a release can be frozen).
 
 ## 1. Hard validation (reject)
 
@@ -22,32 +22,37 @@ Status: **Proposed.** Distinguishes *hard validation* (input is rejected), *qual
 
 | Signal | Computed by | Shown to |
 |--------|-------------|----------|
-| `silent`, `very_quiet`, `clipping`, `too_short` | Audio analysis | Contributor (where detectable before upload), reviewer |
-| `possible_duplicate` | Hash / text match | Reviewer |
-| Declared vs. detected script mismatch | Text pipeline | Contributor (warning), reviewer |
-| Uncertainty markup present | Text pipeline | Reviewer |
-| Translation stale (source revised after translation) | Revision links | Reviewer, researcher |
+| `silent`, `very_quiet`, `clipping`, `too_short` | Audio analysis | Contributor (where detectable before upload), admin, researcher, export |
+| `possible_duplicate` | Hash / text match | Admin, researcher |
+| Declared vs. detected script mismatch | Text pipeline | Contributor (warning), admin, export |
+| Uncertainty markup present | Text pipeline | Researcher, export |
+| Translation stale (source revised after translation) | Revision links | Researcher, export |
 | Lossy source | Audio probe | Researcher, export |
-| VAD speech ratio (optional) | Silero VAD | Reviewer only, labelled "estimate" |
+| VAD speech ratio (optional) | Silero VAD | Admin only, labelled "estimate" |
+
+Since nobody reviews submissions ([ADR-021](ARCHITECTURE_DECISIONS.md#adr-021--no-human-reviewer-accept-after-automatic-checks-keep-text-unverified)), these signals are the main quality information a researcher gets, so exports carry them per item and researchers filter on them.
 
 Signals never change status automatically in MVP. Thresholds are initial guesses and must be tuned against pilot data, with changes recorded here.
 
-## 3. Review quality
+## 3. Quality without human review
 
-- Reviewer cannot review own submission (enforced in service and tested).
-- Every reject/request-changes requires a reason code.
-- Sample audit: an admin re-reviews a random 5% of approved items monthly in the pilot; disagreements are logged as `dispute_revision` events and inform reviewer guidance.
-- Inter-reviewer agreement measurement is future work (needs two-reviewer workflow).
+There is no reviewer in the MVP (ADR-021). Quality rests on:
+
+- **Automatic checks** (§1 rejects, §2 warnings) on every submission. A submission moves to `accepted` only when every check has succeeded.
+- **Honest labels.** All contributor text, including the read-mode prompt sentence, stays `verification_status = unverified`. Exports and data cards say "contributor-provided, unverified"; nothing is called "verified".
+- **Reports.** Any signed-in user can report an item (personal information, a third party's voice, culturally restricted content, wrong or unrelated content). An admin looks at each report and either hides the item (restriction flag) or dismisses the report, with a reason; both are audited.
+- **Spot checks (optional).** When a Mundari speaker is available, an admin may listen to a small random sample before a release and note what they found in the data card. This informs, it does not gate.
+- **Later:** peer checking ("does this clip match its text?") as in Mozilla Common Voice, once enough contributors are active. The review tables kept in the schema are reserved for it.
 
 ## 4. Dataset pre-freeze checks (automated, must all pass)
 
 | # | Check |
 |---|-------|
-| D1 | Every item `approved` and not `withdrawn`. |
+| D1 | Every item `accepted`, not `withdrawn`, and not hidden by an admin. |
 | D2 | Every item's effective consent allows the release purpose (re-computed at freeze time, not cached). |
 | D3 | No item has an excluding restriction flag for this purpose. |
 | D4 | Every referenced file exists and its stored checksum matches a fresh hash. |
-| D5 | Every transcription included as "verified" has `verification_status = verified` and no unresolved uncertainty. |
+| D5 | Every transcription and translation carries its `verification_status` and origin in the export; none is labelled "verified" unless its revision really has `verification_status = verified`. The data card states how many are unverified. |
 | D6 | No export field outside the allow-list (schema test on a generated sample). |
 | D7 | Licence and data card present for external/public/AI-training purposes. |
 | D8 | Summary statistics (counts by dialect label, script, content type, duration) generated and included in the data card. |
