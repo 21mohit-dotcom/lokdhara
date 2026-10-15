@@ -1,6 +1,6 @@
 # Implementation Roadmap
 
-Status: **Approved by Ayush Soni (project owner) on 2026-10-11.** M0, M1, and M2 complete (M2 on 2026-10-12); M3's code is in, with its device and user checks still open; M4 in progress. The **Blocks pilot** questions must still be answered before any real data is collected.
+Status: **Approved by Ayush Soni (project owner) on 2026-10-11.** M0, M1, and M2 complete (M2 on 2026-10-12); M3's code is in, with its device and user checks still open; M4 and M5 built (2026-10-14 and 2026-10-15). The **Blocks pilot** questions must still be answered before any real data is collected.
 
 ## Approach
 
@@ -72,7 +72,7 @@ flowchart LR
 - **Tests:** full upload-security and audio suites in [TESTING_STRATEGY.md](TESTING_STRATEGY.md); text property tests; failure/retry tests.
 - **Before moving on:** FFmpeg version pinned and recorded; thresholds documented.
 
-## M5 — Transcription and translation management
+## M5 — Transcription and translation management *(built 2026-10-15: corrections and new translations after acceptance, version comparison, the submission page with listening, editing, warnings, and version history; still open: a Nag Mundari font check on real phones (Q-T6), which waits on Q-X4)*
 
 - **Deliverables:** text layers (transcription, translation, standalone); revisions with provenance; optimistic concurrency; diff view; uncertainty markup parser; stale-translation indicator; multi-script input support (Devanagari, Latin, Nag Mundari if Q-X4 confirms) with font check (Q-T6).
 - **Dependencies:** M4; Q-X3 conventions (provisional acceptable).
