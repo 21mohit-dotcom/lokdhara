@@ -4,6 +4,7 @@ import type {
   ConsentAnswers,
   ConsentForm,
   Job,
+  Playback,
   Prompt,
   PromptType,
   Script,
@@ -11,6 +12,7 @@ import type {
   Speaker,
   Submission,
   SubmissionCreate,
+  SubmissionDetail,
   TextLayer,
   TextLayerCreate,
 } from './types'
@@ -47,6 +49,10 @@ export const getPrompt = (id: string) => request<Prompt>('GET', `/prompts/${id}`
 export const createSubmission = (body: SubmissionCreate) =>
   request<Submission>('POST', '/submissions', { json: body })
 export const getSubmission = (id: string) => request<Submission>('GET', `/submissions/${id}`)
+export const getSubmissionDetail = (id: string) =>
+  request<SubmissionDetail>('GET', `/submissions/${id}`)
+export const getPlayback = (recordingId: string) =>
+  request<Playback>('GET', `/recordings/${recordingId}/playback`)
 export const listSubmissions = () =>
   request<{ items: Submission[] }>('GET', '/submissions?mine=true&limit=100').then((r) => r.items)
 

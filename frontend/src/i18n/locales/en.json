@@ -271,5 +271,22 @@
     "queued": "Queued again",
     "adminOnly": "Only admins can see this page.",
     "link": "Failed checks"
+  },
+  "submission": {
+    "back": "← My submissions",
+    "sentOn": "Sent on {{date}}",
+    "recording": "Recording",
+    "notReadyToPlay": "The recording is still being prepared for listening.",
+    "notPlayable": "This recording cannot be played.",
+    "texts": "Texts",
+    "noText": "No text yet.",
+    "version": "version {{number}}",
+    "unverified": "Written by the contributor, not checked by anyone",
+    "sourceChanged": "The text this translates has changed since. Please check the translation.",
+    "languages": {
+      "unr": "Mundari",
+      "hi": "Hindi",
+      "en": "English"
+    }
   }
 }

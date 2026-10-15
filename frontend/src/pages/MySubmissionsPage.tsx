@@ -89,7 +89,9 @@ export function MySubmissionsPage() {
       <ul className="list">
         {sent?.map((submission) => (
           <li key={submission.id} className="list-item">
-            <strong>{submission.title || t(`kinds.${submission.kind}`)}</strong>
+            <Link to={`/submissions/${submission.id}`}>
+              <strong>{submission.title || t(`kinds.${submission.kind}`)}</strong>
+            </Link>
             <span>{date(submission.submitted_at ?? submission.created_at)}</span>
             <span className={`status status-${submission.status}`}>
               {t(`statuses.${submission.status}`, { defaultValue: submission.status })}
