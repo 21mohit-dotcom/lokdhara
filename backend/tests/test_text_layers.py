@@ -8,9 +8,13 @@ from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import select
+from sqlalchemy import Engine, select, text
 from sqlalchemy.orm import Session
 
+from app.modules.processing import (
+    handlers,  # noqa: F401 - registers text.derive
+    queue,
+)
 from app.modules.processing.models import Job
 from app.modules.submissions.models import TextRevision
 from tests.conftest import MakeUser, TestUser, act_as, requires_postgres
@@ -105,6 +109,52 @@ def test_text_submissions_can_be_submitted_once_they_have_text(
     assert [job.job_type for job in db.scalars(select(Job))] == ["text.derive"]
     late = _layer(client, text_draft, content="और एक")
     assert late.json()["code"] == "submission_not_editable"
+
+
+def _accepted(client: TestClient, text_draft: str, engine: Engine) -> dict[str, Any]:
+    layer = _created(_layer(client, text_draft))
+    assert client.post(f"{SUBMISSIONS}/{text_draft}/submit").status_code == 200
+    while queue.process_one(engine, "test-worker", 60):
+        pass
+    assert client.get(f"{SUBMISSIONS}/{text_draft}").json()["status"] == "accepted"
+    return layer
+
+
+def test_contributors_correct_and_translate_their_text_after_acceptance(
+    client: TestClient, text_draft: str, engine: Engine, db: Session
+) -> None:
+    layer = _accepted(client, text_draft, engine)
+    corrected = _created(_revise(client, layer, "यह सुधारा हुआ वाक्य है।"))
+    assert corrected["current_revision"]["revision_number"] == 2
+    translation = _layer(
+        client,
+        text_draft,
+        layer_type="translation",
+        entry_type=None,
+        source_layer_id=layer["id"],
+        language_tag="en",
+        script_code="Latn",
+        content="This is a corrected sentence.",
+    )
+    _created(translation)
+
+    # The changed text is checked again, once, and the submission stays accepted.
+    queued = db.scalars(select(Job).where(Job.status == "queued")).all()
+    assert [job.job_type for job in queued] == ["text.derive"]
+    while queue.process_one(engine, "test-worker", 60):
+        pass
+    assert client.get(f"{SUBMISSIONS}/{text_draft}").json()["status"] == "accepted"
+
+
+def test_withdrawn_submissions_cannot_be_edited(
+    client: TestClient, text_draft: str, engine: Engine, db: Session
+) -> None:
+    layer = _accepted(client, text_draft, engine)
+    db.execute(
+        text("UPDATE submissions SET status = 'withdrawn' WHERE id = :id"), {"id": text_draft}
+    )
+    db.commit()
+    assert _revise(client, layer, "बदलाव").json()["code"] == "text_layer_not_found"
 
 
 @pytest.mark.parametrize(

@@ -28,6 +28,9 @@ from app.text import scripts
 from app.text.normalize import to_nfc
 
 EDITABLE_STATUSES = ("draft", "changes_requested")
+# With no reviewer (ADR-021) the contributor is the one who fixes a transcription or adds a
+# translation later; each change is a new revision, so nothing earlier is lost.
+TEXT_EDITABLE_STATUSES = (*EDITABLE_STATUSES, "accepted")
 AUDIO_KINDS = ("audio", "audio_text")
 TEXT_KINDS = ("text", "audio_text")
 MAX_PAGE = 100
