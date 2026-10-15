@@ -15,6 +15,8 @@ from app.modules.submissions.schemas import (
     CollectionContext,
     DeviceHint,
     DiffPart,
+    PlaybackOut,
+    PlaybackSource,
     RecordingOut,
     RevisionCreateRequest,
     RevisionDiffOut,
@@ -30,7 +32,7 @@ from app.modules.submissions.schemas import (
     TextLayerOut,
     UploadOut,
 )
-from app.object_store import ObjectStore, get_object_store
+from app.object_store import Bucket, ObjectStore, get_object_store
 from app.text import scripts
 
 router = APIRouter(tags=["submissions"])
@@ -145,6 +147,27 @@ def upload_recording(
         device_hint=source,
     )
     return UploadOut(recording_id=recording.id, upload_status=recording.upload_status)
+
+
+@router.get("/recordings/{recording_id}/playback")
+def recording_playback(
+    recording_id: uuid.UUID, user: CurrentUser, db: DbSession, settings: SettingsDep, store: Store
+) -> PlaybackOut:
+    """Signed links to the listening copies, Opus first, then AAC."""
+    return PlaybackOut(
+        sources=[
+            PlaybackSource(
+                url=store.signed_url(
+                    Bucket.DERIVED,
+                    rendition.object_key,
+                    ttl_seconds=settings.signed_url_ttl_seconds,
+                    content_type=content_type,
+                ),
+                content_type=content_type,
+            )
+            for rendition, content_type in service.playback_files(db, user, recording_id)
+        ]
+    )
 
 
 @router.post("/submissions/{submission_id}/submit")

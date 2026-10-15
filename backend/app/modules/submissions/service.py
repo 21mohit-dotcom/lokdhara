@@ -13,6 +13,7 @@ from sqlalchemy.dialects.postgresql import distinct_on
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.audio import renditions
 from app.errors import ApiError
 from app.modules.consents import service as consents
 from app.modules.identity.service import AuthenticatedUser, utcnow
@@ -21,7 +22,13 @@ from app.modules.processing.models import Job
 from app.modules.prompts import service as prompts
 from app.modules.speakers import service as speakers
 from app.modules.speakers.models import Speaker
-from app.modules.submissions.models import Recording, Submission, TextLayer, TextRevision
+from app.modules.submissions.models import (
+    Recording,
+    Rendition,
+    Submission,
+    TextLayer,
+    TextRevision,
+)
 from app.modules.submissions.schemas import SubmissionCreateRequest, SubmissionUpdateRequest
 from app.object_store import Bucket, ObjectStore
 from app.text import scripts
@@ -195,6 +202,35 @@ def recordings_of(db: Session, submission_id: uuid.UUID) -> list[Recording]:
             .order_by(Recording.created_at)
         )
     )
+
+
+# Opus first; browsers without Opus (older iPhones) fall back to AAC (Q-T2).
+PLAYBACK_KINDS = (renditions.PLAYBACK_OPUS, renditions.PLAYBACK_AAC)
+
+
+def playback_files(
+    db: Session, user: AuthenticatedUser, recording_id: uuid.UUID
+) -> list[tuple[Rendition, str]]:
+    """The listening copies of a recording the user may see, with their content types.
+    Empty until `audio.renditions` has made them; originals are never played back."""
+    recording = db.get(Recording, recording_id)
+    try:
+        if recording is None:
+            raise _not_found()
+        get_visible(db, user, recording.submission_id)
+    except ApiError as exc:
+        raise ApiError(404, "recording_not_found", "Recording not found.") from exc
+    files = []
+    for kind in PLAYBACK_KINDS:
+        rendition = db.scalar(
+            select(Rendition)
+            .where(Rendition.recording_id == recording.id, Rendition.kind == kind.name)
+            .order_by(Rendition.created_at.desc())
+            .limit(1)
+        )
+        if rendition is not None:
+            files.append((rendition, kind.content_type))
+    return files
 
 
 @dataclass(frozen=True)

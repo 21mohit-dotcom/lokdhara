@@ -116,9 +116,11 @@ Implemented in Milestone 3. `POST /admin/prompts` and `/versions` are multipart:
 | Method | Path | Auth | Purpose |
 |--------|------|------|---------|
 | GET | `/recordings/{id}` | per access rules | Technical metadata, quality metrics/flags, rendition list |
-| GET | `/recordings/{id}/playback` | per access rules (🔒 if restricted) | `{url, expires_at, mime_type}` signed URL for playback rendition |
+| GET | `/recordings/{id}/playback` | per access rules (🔒 if restricted) | `{sources: [{url, content_type}]}`: signed URLs for the listening copies, Opus (`audio/webm`) first, then AAC (`audio/mp4`) |
 | GET | `/recordings/{id}/waveform` | per access rules | Peaks JSON |
 | GET | `/admin/recordings/{id}/original?reason=…` | admin 🔒 | Streams original; reason required |
+
+`/recordings/{id}/playback` is implemented (Milestone 5): `sources` is empty until `audio.renditions` has made the copies, and links expire with `LKD_SIGNED_URL_TTL_SECONDS`. Error code: `recording_not_found` (404, also for recordings the user may not see). The other routes in this table are not built yet.
 
 ## 6. Text layers and revisions
 
